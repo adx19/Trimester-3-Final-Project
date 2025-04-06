@@ -10,10 +10,22 @@ export default async function handler(req, res) {
     const matches = [];
 
     $('.event-row').each((i, el) => {
-      const team1 = $(el).find('.cell__content').eq(0).text().trim();
-      const team2 = $(el).find('.cell__content').eq(1).text().trim();
-      const score = $(el).find('.cell__content').eq(2).text().trim();
-      matches.push({ team1, team2, score });
+      const team1 = $(el).find('.event__participant--home').text().trim();
+      const team2 = $(el).find('.event__participant--away').text().trim();
+      const score = $(el).find('.event__scores').text().trim() || "-";
+      const status = $(el).find('.event__stage--block').text().trim() || "TBD";
+
+      matches.push({
+        team1,
+        team2,
+        score,
+        status,
+        venue: "SofaScore",
+        date: new Date().toLocaleDateString(),
+        time: new Date().toLocaleTimeString(),
+        team1Logo: "/default-logo.png", // Placeholder
+        team2Logo: "/default-logo.png", // Placeholder
+      });
     });
 
     res.status(200).json({ matches });
