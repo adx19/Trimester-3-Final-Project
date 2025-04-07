@@ -1,31 +1,43 @@
-const axios = require('axios');
-const cheerio = require('cheerio');
+import axios from "axios";
+import * as cheerio from "cheerio";
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   try {
-    const response = await axios.get('https://www.sofascore.com/football/livescore', {
+    const response = await axios.get("https://www.sofascore.com/football/livescore", {
       headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36',
-        'Accept-Language': 'en-US,en;q=0.9',
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36",
+        "Accept-Language": "en-US,en;q=0.9",
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
       },
     });
 
     const html = response.data;
     const $ = cheerio.load(html);
 
+    // Dummy example logic — replace this with your own logic
     const matches = [];
 
-    $('.event-row').each((i, el) => {
-      const team1 = $(el).find('.cell__content').eq(0).text().trim();
-      const team2 = $(el).find('.cell__content').eq(1).text().trim();
-      const score = $(el).find('.cell__content').eq(2).text().trim();
-      matches.push({ team1, team2, score });
+    $(".event__match").each((_, element) => {
+      const team1 = $(element).find(".event__participant--home").text().trim();
+      const team2 = $(element).find(".event__participant--away").text().trim();
+      const score = $(element).find(".event__scores").text().trim();
+      const status = $(element).find(".event__stage").text().trim();
+
+      matches.push({
+        team1,
+        team2,
+        score,
+        status,
+      });
     });
 
-    return res.status(200).json({ matches });
+    res.status(200).json({ matches });
   } catch (err) {
-    console.error('SofaScore scraping error:', err.message);
-    return res.status(500).json({ error: 'Scraping failed', details: err.message });
+    console.error("Scraping failed:", err.message);
+    res.status(500).json({
+      error: "Scraping failed",
+      details: err.message,
+    });
   }
-};
+}
