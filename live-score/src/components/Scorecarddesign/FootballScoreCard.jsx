@@ -8,9 +8,15 @@ function FootballScoreCard() {
     const fetchFixture = async () => {
       try {
         const res = await fetch("/api/sofascore");
+  
+        // If not OK, read as text (likely HTML) and throw error
+        if (!res.ok) {
+          const errorText = await res.text();
+          throw new Error(`Server Error: ${errorText}`);
+        }
+  
         const data = await res.json();
-        console.log("Fetched data:", data); // 👈 add this
-        setEachFixture(data.matches || []); // default to [] if undefined
+        setEachFixture(data.matches);
       } catch (err) {
         console.error("Error fetching SofaScore data:", err.message);
       }
@@ -18,6 +24,7 @@ function FootballScoreCard() {
   
     fetchFixture();
   }, []);
+  
   
   return (
     <div className="flex flex-row flex-wrap gap-4">

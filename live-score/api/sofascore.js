@@ -13,6 +13,7 @@ export default async function handler(req, res) {
     });
 
     const html = response.data;
+    console.log(response.data)
     const $ = cheerio.load(html);
 
     // Dummy example logic — replace this with your own logic
