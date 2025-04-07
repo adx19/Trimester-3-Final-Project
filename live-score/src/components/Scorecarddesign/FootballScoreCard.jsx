@@ -7,20 +7,25 @@ function FootballScoreCard() {
   useEffect(() => {
     const fetchFixture = async () => {
       try {
-        const res = await fetch("/api/sofascore"); // this is the Vercel serverless API route
+        const res = await fetch("/api/sofascore");
         const data = await res.json();
-        setEachFixture(data.matches);
+        console.log("Fetched data:", data); // 👈 add this
+        setEachFixture(data.matches || []); // default to [] if undefined
       } catch (err) {
         console.error("Error fetching SofaScore data:", err.message);
       }
     };
+  
+    fetchFixture();
+  }, []);
+  
 
     fetchFixture();
   }, []);
 
   return (
     <div className="flex flex-row flex-wrap gap-4">
-      {eachFixture.map((game, idx) => (
+      {Array.isArray(eachFixture) && eachFixture.map((game, idx) => (
         <div
           key={idx}
           className="border-3 rounded-2xl border-emerald-500 w-[400px] h-[220px] flex font-bold flex-col items-center m-[20px]"
