@@ -19,10 +19,6 @@ function FootballScoreCard() {
     fetchFixture();
   }, []);
   
-
-    fetchFixture();
-  }, []);
-
   return (
     <div className="flex flex-row flex-wrap gap-4">
       {Array.isArray(eachFixture) && eachFixture.map((game, idx) => (
