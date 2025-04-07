@@ -9,33 +9,33 @@ function CricketScoreCard() {
   const [team2Flag, setTeam2Flag] = useState(null);
 
   useEffect(() => {
-    const fetchMatch = async () => {
-      const matchData = await latestfixturescric();
-
-      if (matchData && matchData.teams) {
-        setMatch(matchData);
-
-        const [flag1, flag2] = await Promise.all([
-          countryDetails(matchData.teams[0]),
-          countryDetails(matchData.teams[1]),
-        ]);
-
-        setTeam1Flag(flag1?.flag || null);
-        setTeam2Flag(flag2?.flag || null);
+    const fetchMatchData = async () => {
+      const match = await latestfixturescric();
+  
+      if (match && match.teams?.length === 2) {
+        setMatch(match); // <-- ✅ Set the match data in state
+  
+        const flag1 = await countryDetails(match.teams[0]);
+        const flag2 = await countryDetails(match.teams[1]);
+  
+        setTeam1Flag(flag1?.flag || "/default-logo.png");
+        setTeam2Flag(flag2?.flag || "/default-logo.png");
       }
     };
-
-    fetchMatch();
+  
+    fetchMatchData();
   }, []);
+  
+  
 
   if (!match) return null;
 
   return (
-    <div className="border-3 rounded-2xl border-emerald-500 w-[300px] h-[300px] m-[20px]">
+    <div className="border-3 rounded-2xl border-emerald-500 w-[340px] h-[330px] m-[20px]">
       <div className="flex flex-col">
         <div className="text-xl font-bold flex flex-row mt-[10px] ml-[10px]">
           <img src={team1Flag} className="h-[60px]" alt="Team 1 Flag" />
-          <div className="mt-[20px]">{match.teams[0]} - </div>
+          <div className="mt-[20px]">{match.teams[0] || "Team 1"} </div>
           <div className="mt-[20px] ml-[10px]">Score Unavailable</div>
         </div>
       </div>
@@ -45,7 +45,7 @@ function CricketScoreCard() {
       </div>
       <div className="text-lg font-bold flex flex-row mt-[15px] ml-[10px]">
         <img src={team2Flag} className="h-[60px]" alt="Team 2 Flag" />
-        <div className="mt-[15px]">{match.teams[1]} - </div>
+        <div className="mt-[15px]">{match.teams[1] || "Team 2"} </div>
         <div className="mt-[15px] ml-[10px]">Overs Unavailable</div>
       </div>
       <div className="font-bold text-yellow-500 ml-[25px]">

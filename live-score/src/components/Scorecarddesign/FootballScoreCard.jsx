@@ -13,6 +13,12 @@ function FootballScoreCard() {
     };
 
     fetchData();
+
+    // Auto-refresh every 30 seconds
+    const intervalId = setInterval(fetchData, 30000);
+
+    // Cleanup on unmount
+    return () => clearInterval(intervalId);
   }, []);
 
   return (
@@ -20,17 +26,20 @@ function FootballScoreCard() {
       {fixtures.map((match, idx) => (
         <div
           key={idx}
-          className="border-2 rounded-2xl border-emerald-500 w-[360px] h-[240px] flex flex-col items-center justify-between p-4 shadow-lg"
+          className="border-2 rounded-2xl border-emerald-500 w-[360px] h-[260px] flex flex-col items-center justify-between p-4 shadow-lg"
         >
           <div className="text-xl font-bold">
             {match.team1} vs {match.team2}
           </div>
           <div className="text-sm text-gray-600">{match.venue}</div>
-          <div className="text-sm text-gray-600">
-            {match.date} | {match.time}
+          <div className="text-sm text-gray-600">{match.time}</div>
+
+          {/* Match Time (Minutes) */}
+          <div className="text-sm text-red-600 font-semibold">
+            {match.minutesInMatch}
           </div>
 
-          <div className="flex items-center justify-around w-full mt-4">
+          <div className="flex items-center justify-around w-full mt-2">
             <img
               src={match.team1Logo}
               alt={match.team1}
