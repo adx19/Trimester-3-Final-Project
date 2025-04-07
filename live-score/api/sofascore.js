@@ -1,7 +1,7 @@
-import axios from 'axios';
-import * as cheerio from 'cheerio';
+const axios = require('axios');
+const cheerio = require('cheerio');
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   try {
     const response = await axios.get('https://www.sofascore.com/football/livescore', {
       headers: {
@@ -28,4 +28,4 @@ export default async function handler(req, res) {
     console.error('SofaScore scraping error:', err.message);
     return res.status(500).json({ error: 'Scraping failed', details: err.message });
   }
-}
+};
