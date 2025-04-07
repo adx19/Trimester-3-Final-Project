@@ -1,70 +1,60 @@
 import React, { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCircle } from "@fortawesome/free-solid-svg-icons";
+import { getLiveFootballMatches } from "../../url/api";
 
 function FootballScoreCard() {
-  const [eachFixture, setEachFixture] = useState([]);
+  const [fixtures, setFixtures] = useState([]);
+
   useEffect(() => {
-    const fetchFixture = async () => {
-      try {
-        const res = await fetch("/api/sofascore");
-  
-        // If not OK, read as text (likely HTML) and throw error
-        if (!res.ok) {
-          const errorText = await res.text();
-          throw new Error(`Server Error: ${errorText}`);
-        }
-  
-        const data = await res.json();
-        setEachFixture(data.matches);
-      } catch (err) {
-        console.error("Error fetching SofaScore data:", err.message);
-      }
+    const fetchData = async () => {
+      const data = await getLiveFootballMatches();
+      setFixtures(data);
     };
-  
-    fetchFixture();
+
+    fetchData();
   }, []);
-  
-  
+
   return (
-    <div className="flex flex-row flex-wrap gap-4">
-      {Array.isArray(eachFixture) && eachFixture.map((game, idx) => (
+    <div className="flex flex-row flex-wrap justify-center gap-6 p-4">
+      {fixtures.map((match, idx) => (
         <div
           key={idx}
-          className="border-3 rounded-2xl border-emerald-500 w-[400px] h-[220px] flex font-bold flex-col items-center m-[20px]"
+          className="border-2 rounded-2xl border-emerald-500 w-[360px] h-[240px] flex flex-col items-center justify-between p-4 shadow-lg"
         >
-          <div className="mt-2 text-xl">
-            {game.title || `${game.team1} vs ${game.team2}`}
+          <div className="text-xl font-bold">
+            {match.team1} vs {match.team2}
           </div>
-          <div className="text-mg">{game.venue || "Unknown Venue"}</div>
-          <div className="text-mg">
-            {game.date || "TBD"} | {game.time || "TBD"}
+          <div className="text-sm text-gray-600">{match.venue}</div>
+          <div className="text-sm text-gray-600">
+            {match.date} | {match.time}
           </div>
-          <div className="flex flex-row items-center mt-[10px]">
-            <img
-              src={game.team1Logo || "/default-logo.png"}
-              alt={game.team1}
-              className="mr-[20px] w-[80px] h-[80px] object-contain"
-            />
 
-            <div className="mt-4 text-3xl">{game.score || "-"}</div>
+          <div className="flex items-center justify-around w-full mt-4">
             <img
-              src={game.team2Logo || "/default-logo.png"}
-              alt={game.team2}
-              className="mr-[20px] w-[80px] h-[80px] object-contain"
+              src={match.team1Logo}
+              alt={match.team1}
+              className="w-16 h-16 object-contain"
+            />
+            <div className="text-3xl font-semibold">{match.score}</div>
+            <img
+              src={match.team2Logo}
+              alt={match.team2}
+              className="w-16 h-16 object-contain"
             />
           </div>
-          <div className="flex flex-row -ml-[8px]">
-            {["1H", "2H", "LIVE"].includes(game.status) ? (
+
+          <div className="flex items-center mt-2">
+            {match.status === "LIVE" ? (
               <>
                 <FontAwesomeIcon
                   icon={faCircle}
-                  className="text-red-500 text-mg mt-[5px] text-xs"
+                  className="text-red-500 text-xs mr-2"
                 />
-                <div className="ml-[3px]">LIVE</div>
+                <span className="text-red-500 font-medium">LIVE</span>
               </>
             ) : (
-              <>{game.status}</>
+              <span className="text-gray-500 text-sm">{match.status}</span>
             )}
           </div>
         </div>
