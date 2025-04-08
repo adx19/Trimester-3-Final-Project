@@ -16,7 +16,7 @@ function SearchBar() {
           <div onClick={() => setsport("football")} className="cursor-pointer">Football</div>
           <div className="ml-[200px] cursor-pointer" onClick={() => setsport("cricket")}>Cricket</div>
         </div>
-        <div className="mt-[50px] ml-[200px]">
+        <div className="mt-[50px] ml-[180px]">
           <input
             type="input"
             placeholder=" Search Match"

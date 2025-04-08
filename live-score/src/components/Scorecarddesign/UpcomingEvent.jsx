@@ -1,26 +1,24 @@
 import React, { useEffect, useState } from "react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCircle } from "@fortawesome/free-solid-svg-icons";
-import { getleaugeMatches, getLiveFootballMatches } from "../../url/api";
+import { getSeasonId, getUpcomingMatches } from "../../url/api";
 
-function FootballScoreCard({ leagueName }) {
+function UpcomingEvent({leagueName}) {
   const [fixtures, setFixtures] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
-      const data = await getleaugeMatches(leagueName);
+      const seasonDate = await getSeasonId(leagueName);
+      const data = await getUpcomingMatches(leagueName, seasonDate);
       setFixtures(data);
     };
-
+  
     fetchData();
-    const intervalId = setInterval(fetchData, 30000);
-    return () => clearInterval(intervalId);
-  }, []);
+  }, [leagueName]); // Add dependency
+  
 
   return (
     <div>
       <div className="flex flex-col flex-wrap items-center font-bold text-2xl text-emerald-500">
-        {leagueName.toUpperCase()}:
+        {leagueName.toUpperCase()} - Upcoming:
         <div className="font-bold flex flex-row justify-start flex-wrap gap-15 p-4 ml-[30px] overflow-y-hidden webkit-scrollbar::none mb-[30px] border-b-[2px] w-full border-b-[2px] border-emerald-500">
           {fixtures.map((match, idx) => (
             <div
@@ -32,9 +30,6 @@ function FootballScoreCard({ leagueName }) {
               </div>
               <div className="text-sm text-gray-600">{match.venue}</div>
               <div className="text-sm text-gray-600">{match.time}</div>
-              <div className="text-sm text-red-600 font-semibold">
-                {match.minutesInMatch}
-              </div>
               <div className="flex items-center justify-around w-full mt-2">
                 <img
                   src={match.team1Logo}
@@ -69,4 +64,4 @@ function FootballScoreCard({ leagueName }) {
   );
 }
 
-export default FootballScoreCard;
+export default UpcomingEvent;
