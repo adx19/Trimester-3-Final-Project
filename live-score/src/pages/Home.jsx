@@ -2,7 +2,7 @@ import React from "react";
 import SearchBar from "../components/SearchBar";
 import { useSearch, useStatus } from "../context/context";
 import PlayingNow from "../components/PlayingNow";
-import { topLeagues } from "../../public/league names/league-names";
+import { leagueSlugToId } from "../../public/league names/league-names";
 import UpcomingEvent from "../components/Scorecarddesign/UpcomingEvent";
 import FootballScoreCard from "../components/Scorecarddesign/FootballScoreCard";
 import MatchList from "../components/MatchList";
@@ -10,7 +10,9 @@ import MatchList from "../components/MatchList";
 function Home() {
   const { status } = useStatus();
   const { search } = useSearch();
-  console.log("Home.jsx Status:", status); // ✅ Debug
+  console.log("Home.jsx Status:", status); 
+  const topLeagues = Object.keys(leagueSlugToId);
+
 
   return (
     <div>

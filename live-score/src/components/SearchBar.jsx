@@ -47,7 +47,7 @@ function SearchBar() {
         <div className="mt-[50px] ml-[80px]">
           <input
             type="input"
-            placeholder=" Search Match"
+            placeholder=" Search Team Name"
             className="h-10 text-green-700 text-lg  font-bold w-200 rounded-xl border-2 border-emerald-500 focus:border-emerald-500 focus:outline-none"
           />
           <FontAwesomeIcon

@@ -1,5 +1,4 @@
 import axios from "axios";
-import { topLeagues } from "../../public/league names/league-names";
 const BASE_URL = "https://api.sofascore.com/api/v1";
 
 export const getTeamData = async (teamName) => {
@@ -9,8 +8,16 @@ export const getTeamData = async (teamName) => {
 
 const normalize = (str) => str?.toLowerCase().replace(/[^a-z]/g, "");
 
+import { leagueSlugToId } from "../../public/league names/league-names";
+
 export const getleaugeMatches = async (leagueSlug) => {
+  const leagueId = leagueSlugToId[leagueSlug];
   const maxLookbackDays = 15;
+
+  if (!leagueId) {
+    console.warn(`No league ID found for slug: ${leagueSlug}`);
+    return [];
+  }
 
   try {
     let date = new Date();
@@ -26,15 +33,9 @@ export const getleaugeMatches = async (leagueSlug) => {
       const events = response.data.events || [];
 
       const leagueMatches = events.filter((event) => {
-        const tournamentSlug = event.tournament?.slug?.toLowerCase() || "";
-        const categorySlug =
-          event.tournament?.category?.slug?.toLowerCase() || "";
+        const tournamentId = event.tournament?.uniqueTournament?.id;
         const isMatchEarlier = event.startTimestamp * 1000 <= now;
-        return (
-          isMatchEarlier &&
-          (tournamentSlug.includes(leagueSlug.toLowerCase()) ||
-            categorySlug.includes(leagueSlug.toLowerCase()))
-        );
+        return isMatchEarlier && tournamentId === leagueId;
       });
 
       if (leagueMatches.length > 0) {
@@ -70,6 +71,8 @@ export const getleaugeMatches = async (leagueSlug) => {
   }
 };
 
+
+
 export const getSeasonId = async (leagueSlug) => {
   const res = await axios.get(
     `${BASE_URL}/unique-tournament/${leagueSlug}/seasons`
@@ -78,11 +81,17 @@ export const getSeasonId = async (leagueSlug) => {
   return res.data.seasons?.[0]?.id;
 };
 export const getUpcomingMatches = async (leagueSlug) => {
-  const maxForwardDays = 10;
+  const leagueId = leagueSlugToId[leagueSlug];
+  const maxForwardDays = 15;
+
+  if (!leagueId) {
+    console.warn(`No league ID found for slug: ${leagueSlug}`);
+    return [];
+  }
 
   try {
     let date = new Date();
-    const now = Date.now(); // current timestamp in ms
+    const now = Date.now();
 
     for (let i = 0; i < maxForwardDays; i++) {
       const dateStr = date.toISOString().split("T")[0];
@@ -93,25 +102,19 @@ export const getUpcomingMatches = async (leagueSlug) => {
 
       const events = response.data.events || [];
 
-      const leagueMatches = events.filter((event) => {
-        const tournamentSlug = event.tournament?.slug?.toLowerCase() || "";
-        const categorySlug =
-          event.tournament?.category?.slug?.toLowerCase() || "";
+      const upcomingMatches = events.filter((event) => {
+        const tournamentId = event.tournament?.uniqueTournament?.id;
         const isMatchLater = event.startTimestamp * 1000 > now;
-        return (
-          isMatchLater &&
-          (tournamentSlug.includes(leagueSlug.toLowerCase()) ||
-            categorySlug.includes(leagueSlug.toLowerCase()))
-        );
+        return isMatchLater && tournamentId === leagueId;
       });
 
-      if (leagueMatches.length > 0) {
-        return leagueMatches.map((event) => ({
+      if (upcomingMatches.length > 0) {
+        return upcomingMatches.map((event) => ({
           team1: event.homeTeam?.name,
           team2: event.awayTeam?.name,
           team1Logo: `https://api.sofascore.app/api/v1/team/${event.homeTeam?.id}/image`,
           team2Logo: `https://api.sofascore.app/api/v1/team/${event.awayTeam?.id}/image`,
-          score: "- : -",
+          score: "-",
           venue:
             event.venue?.stadium?.name || event.venue?.name || "Unknown Venue",
           date: dateStr,
@@ -121,7 +124,7 @@ export const getUpcomingMatches = async (leagueSlug) => {
                 minute: "2-digit",
               })
             : "TBD",
-          status: "UPCOMING",
+          status: event.status?.type || "TBD",
         }));
       }
 
@@ -142,8 +145,17 @@ export const getLiveFootballMatches = async () => {
     const liveEvents = response.data.events || [];
 
     const filteredEvents = liveEvents.filter((event) => {
-      const eventSlug = normalize(event.tournament?.slug);
-      return topLeagues.some((league) => eventSlug.includes(normalize(league)));
+      const tournamentId = event.tournament?.uniqueTournament?.id;
+      const tournamentName = event.tournament?.uniqueTournament?.slug;
+
+      return Object.entries(leagueSlugToId).some(([slug, id]) => {
+        if (id) {
+          return tournamentId === id;
+        } else {
+          // fallback to name match
+          return tournamentName === slug;
+        }
+      });
     });
 
     return filteredEvents.map((event) => {
@@ -160,6 +172,7 @@ export const getLiveFootballMatches = async () => {
       } else {
         timeInMatch = "LIVE";
       }
+
       const today = new Date();
       const dateOnly = today.toISOString().split("T")[0];
 
@@ -168,21 +181,19 @@ export const getLiveFootballMatches = async () => {
         team2: event.awayTeam?.name,
         team1Logo: `${BASE_URL}/team/${event.homeTeam?.id}/image`,
         team2Logo: `${BASE_URL}/team/${event.awayTeam?.id}/image`,
-        score: `${event.homeScore?.current ?? "-"} - ${
-          event.awayScore?.current ?? "-"
-        }`,
+        score: `${event.homeScore?.current ?? "-"} - ${event.awayScore?.current ?? "-"}`,
         date: `${dateOnly}`,
         venue: event.venue?.stadium?.name || "Unknown Venue",
-        time:
-          new Date() - event.startTimestamp
-            ? new Date(event.startTimestamp * 1000).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })
-            : "TBD",
+        time: event.startTimestamp
+          ? new Date(event.startTimestamp * 1000).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : "TBD",
         status: event.status?.description || "TBD",
         tournament: event.tournament?.name || "",
-        minutesInMatch: event.time?.minute,
+        minutesInMatch: minute ?? "—",
+        timeInMatch,
       };
     });
   } catch (error) {
@@ -190,6 +201,8 @@ export const getLiveFootballMatches = async () => {
     return [];
   }
 };
+
+
 export const getTeamMatches = async (teamName, pageNo) => {
   if (!teamName) {
     console.warn("No team name provided");
