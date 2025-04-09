@@ -1,15 +1,15 @@
 import { createContext, useContext, useState } from "react";
 
-const context = createContext();
+const Context = createContext();
 
-export const useSport = () => useContext(context);
+export const useStatus = () => useContext(Context);
 
-export const SportsProvider = ({children}) => {
-  const [sport, setsport] = useState("football");
+export const SportsProvider = ({ children }) => {
+  const [status, setStatus] = useState("live");
 
-  return(
-    <context.Provider value={{sport,setsport}}>
+  return (
+    <Context.Provider value={{ status, setStatus }}>
       {children}
-    </context.Provider>
+    </Context.Provider>
   );
 };

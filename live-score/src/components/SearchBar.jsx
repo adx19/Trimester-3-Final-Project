@@ -2,10 +2,10 @@ import React from "react";
 import Image from "../assets/image.png";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSearch } from "@fortawesome/free-solid-svg-icons";
-import { useSport } from "../context/context";
+import { useStatus } from "../context/context";
 
 function SearchBar() {
-  const{setsport} = useSport();
+  const{setStatus} = useStatus();
   return (
     <>
       <div className="flex flex-row  w-full border-b-4 border-emerald-500">
@@ -13,14 +13,15 @@ function SearchBar() {
           <img src={Image} className="h-[150px]"></img>
         </div>
         <div className="mt-[50px] ml-[100px] flex flex-row justify-evenly text-emerald-500 text-3xl font-bold">
-          <div onClick={() => setsport("football")} className="cursor-pointer">Football</div>
-          <div className="ml-[200px] cursor-pointer" onClick={() => setsport("cricket")}>Cricket</div>
+          <div onClick={() => setStatus("live")} className="cursor-pointer">Now Playing</div>
+          <div className="ml-[50px] cursor-pointer" onClick={() => setStatus("previous")}>Past Matches</div>
+          <div className="ml-[50px] cursor-pointer" onClick={() => setStatus("upcoming")}>Upcoming Matches</div>
         </div>
-        <div className="mt-[50px] ml-[180px]">
+        <div className="mt-[50px] ml-[80px]">
           <input
             type="input"
             placeholder=" Search Match"
-            className="h-10 text-green-700 text-lg  font-bold w-250 rounded-xl border-2 border-emerald-500 focus:border-emerald-500 focus:outline-none"
+            className="h-10 text-green-700 text-lg  font-bold w-200 rounded-xl border-2 border-emerald-500 focus:border-emerald-500 focus:outline-none"
           />
           <FontAwesomeIcon
             icon={faSearch}

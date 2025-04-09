@@ -36,9 +36,8 @@ function PlayingNow() {
                   {match.team1} vs {match.team2}
                 </div>
                 <div className="text-sm text-gray-600">{match.venue}</div>
-                <div className="text-sm text-gray-600">{match.time}</div>
+                <div className="text-sm text-gray-600">{match.date} || {match.time}</div>
   
-                {/* Match Time (Minutes) */}
                 <div className="text-sm text-red-600 font-semibold">
                   {match.minutesInMatch}
                 </div>
@@ -58,7 +57,7 @@ function PlayingNow() {
                 </div>
   
                 <div className="flex items-center mt-2">
-                  {match.status === "LIVE" ? (
+                  {match.status == "LIVE" ? (
                     <>
                       <FontAwesomeIcon
                         icon={faCircle}

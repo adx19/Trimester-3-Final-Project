@@ -1,26 +1,43 @@
 import React from "react";
 import SearchBar from "../components/SearchBar";
-import Scorecard from "../components/Scorecard";
-import { useSport } from "../context/context";
+import { useStatus } from "../context/context";
 import PlayingNow from "../components/PlayingNow";
 import { topLeagues } from "../../public/league names/league-names";
 import UpcomingEvent from "../components/Scorecarddesign/UpcomingEvent";
-topLeagues
+import FootballScoreCard from "../components/Scorecarddesign/FootballScoreCard";
+
 function Home() {
-  const { sport } = useSport();
+  const { status } = useStatus();
+
+  console.log("Home.jsx Status:", status); // ✅ Debug
+
   return (
-    <>
-      <div className="overflow-y-scroll scrollbar-hide">
-        <SearchBar />
-        <PlayingNow />
-        {topLeagues.map((league, idx) => (
-          <Scorecard key={idx} gametype={sport} footballLeague={league} />
-        ))}
-        {topLeagues.map((league, idx) => (
-          <UpcomingEvent leagueName={league} key={idx} />
-        ))}
+    <div>
+      <SearchBar />
+      <div>
+        {status == "live" && (
+          <>
+            <PlayingNow/>
+          </>
+        )}
+
+        {status == "previous" && (
+          <>
+            {topLeagues.map((league, idx) => (
+              <FootballScoreCard leagueName={league} key={idx} />
+            ))}
+          </>
+        )}
+
+        {status == "upcoming" && (
+          <>
+            {topLeagues.map((league, idx) => (
+              <UpcomingEvent leagueName={league} key={idx} />
+            ))}
+          </>
+        )}
       </div>
-    </>
+    </div>
   );
 }
 
