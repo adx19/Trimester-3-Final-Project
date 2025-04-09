@@ -41,7 +41,7 @@ function UpcomingEvent({ leagueName }) {
                 />
               </div>
               <div className="flex items-center mt-2">
-                <span className="text-gray-500 text-sm">{match.status}</span>
+                <span className="text-gray-500 text-sm">{match.status.toUpperCase()}</span>
               </div>
             </div>
           ))}

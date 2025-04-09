@@ -1,15 +1,28 @@
 import { createContext, useContext, useState } from "react";
 
-const Context = createContext();
 
-export const useStatus = () => useContext(Context);
+const StatusContext = createContext();
+export const useStatus = () => useContext(StatusContext);
 
 export const SportsProvider = ({ children }) => {
   const [status, setStatus] = useState("live");
 
   return (
-    <Context.Provider value={{ status, setStatus }}>
+    <StatusContext.Provider value={{ status, setStatus }}>
       {children}
-    </Context.Provider>
+    </StatusContext.Provider>
+  );
+};
+
+const SearchContext = createContext();
+export const useSearch = () => useContext(SearchContext);
+
+export const SearchProvider = ({ children }) => {
+  const [search, setSearch] = useState("");
+
+  return (
+    <SearchContext.Provider value={{ search, setSearch }}>
+      {children}
+    </SearchContext.Provider>
   );
 };

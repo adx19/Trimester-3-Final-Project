@@ -58,7 +58,7 @@ function FootballScoreCard({ leagueName }) {
                     <span className="text-red-500 font-medium">LIVE</span>
                   </>
                 ) : (
-                  <span className="text-gray-500 text-sm">{match.status}</span>
+                  <span className="text-gray-500 text-sm">{match.status.toUpperCase()}</span>
                 )}
               </div>
             </div>
