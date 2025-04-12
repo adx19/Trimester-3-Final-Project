@@ -18,6 +18,13 @@ function SearchBar() {
     setStatus(set);
     setSearch(null);
   }
+
+  const handleKeyPress = (event) => {
+    if (event.key === "Enter") {
+      renderSearch();
+    }
+  };
+  
   useEffect(() => {
     async function testSearch() {
       try {
@@ -49,6 +56,7 @@ function SearchBar() {
             type="input"
             placeholder=" Search Team Name"
             className="h-10 text-green-700 text-lg  font-bold w-200 rounded-xl border-2 border-emerald-500 focus:border-emerald-500 focus:outline-none"
+            onKeyDown={handleKeyPress}
           />
           <FontAwesomeIcon
             icon={faSearch}
