@@ -261,14 +261,14 @@ export const getTeamMatches = async (teamName, pageNo) => {
       console.warn(`No search results for: ${teamName}`);
       return [];
     }
-    
+
     const teamId = searchRes.data.results
       .filter((r) => r.type === "team")
       .map((r) => r.entity)[0]?.id;
     const matchRes = await axios.get(
       `${BASE_URL}/team/${teamId}/events/last/${pageNo}`
     );
-    
+
     const events = matchRes.data.events.reverse();
     console.log(`Fetched ${events.length} events for team ${teamName}`);
     if (events.length > 0) {
@@ -278,23 +278,27 @@ export const getTeamMatches = async (teamName, pageNo) => {
             console.warn("Skipping event with missing ID:", event);
             return null;
           }
-      
+
           let venueName = "Unknown";
           try {
             const detailRes = await axios.get(`${BASE_URL}/event/${event.id}`);
-            venueName = detailRes.data?.event?.venue?.name || "TBD";
+            venueName = detailRes.data?.event;
           } catch (e) {
             console.warn(`No venue found for event ${event.id}:`, e.message);
           }
-      
+
           return {
             team1: event.homeTeam?.name,
             team2: event.awayTeam?.name,
             team1Logo: `https://api.sofascore.app/api/v1/team/${event.homeTeam?.id}/image`,
             team2Logo: `https://api.sofascore.app/api/v1/team/${event.awayTeam?.id}/image`,
-            score: `${event.homeScore?.current ?? "-"} - ${event.awayScore?.current ?? "-"}`,
-            venue: venueName,
-            date: new Date(event.startTimestamp * 1000).toISOString().split("T")[0],
+            score: `${event.homeScore?.current ?? "-"} - ${
+              event.awayScore?.current ?? "-"
+            }`,
+            venue: venueName.venue?.name || "TBD",
+            date: new Date(event.startTimestamp * 1000)
+              .toISOString()
+              .split("T")[0],
             time: new Date(event.startTimestamp * 1000).toLocaleTimeString([], {
               hour: "2-digit",
               minute: "2-digit",
@@ -303,9 +307,8 @@ export const getTeamMatches = async (teamName, pageNo) => {
           };
         })
       );
-      
+
       return enrichedMatches.filter(Boolean);
-      
     }
 
     return [];
