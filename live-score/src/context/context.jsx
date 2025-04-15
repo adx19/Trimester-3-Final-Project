@@ -6,7 +6,6 @@ export const useStatus = () => useContext(StatusContext);
 
 export const SportsProvider = ({ children }) => {
   const [status, setStatus] = useState("live");
-
   return (
     <StatusContext.Provider value={{ status, setStatus }}>
       {children}

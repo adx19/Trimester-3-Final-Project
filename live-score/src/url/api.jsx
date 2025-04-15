@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { all } from "axios";
 const BASE_URL = "https://api.sofascore.com/api/v1";
 
 export const getTeamData = async (teamName) => {
@@ -39,25 +39,43 @@ export const getleaugeMatches = async (leagueSlug) => {
       });
 
       if (leagueMatches.length > 0) {
-        return leagueMatches.map((event) => ({
-          team1: event.homeTeam?.name,
-          team2: event.awayTeam?.name,
-          team1Logo: `https://api.sofascore.app/api/v1/team/${event.homeTeam?.id}/image`,
-          team2Logo: `https://api.sofascore.app/api/v1/team/${event.awayTeam?.id}/image`,
-          score: `${event.homeScore?.current ?? "-"} - ${
-            event.awayScore?.current ?? "-"
-          }`,
-          venue:
-            event.venue?.stadium?.name || event.venue?.name || "Unknown Venue",
-          date: dateStr,
-          time: event.startTimestamp
-            ? new Date(event.startTimestamp * 1000).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })
-            : "TBD",
-          status: event.status?.type || "TBD",
-        }));
+        const enrichedMatches = await Promise.all(
+          leagueMatches.map(async (event) => {
+            let venueName = "Unknown Venue";
+            try {
+              const detailRes = await axios.get(
+                `${BASE_URL}/event/${event.id}`
+              );
+              venueName =
+                detailRes.data?.event?.venue?.stadium?.name ||
+                detailRes.data?.event?.venue?.name ||
+                "Unknown Venue";
+            } catch (e) {
+              console.warn(`No venue found for event ${event.id}`);
+            }
+
+            return {
+              team1: event.homeTeam?.name,
+              team2: event.awayTeam?.name,
+              team1Logo: `https://api.sofascore.app/api/v1/team/${event.homeTeam?.id}/image`,
+              team2Logo: `https://api.sofascore.app/api/v1/team/${event.awayTeam?.id}/image`,
+              score: `${event.homeScore?.current ?? "-"} - ${
+                event.awayScore?.current ?? "-"
+              }`,
+              venue: venueName,
+              date: dateStr,
+              time: event.startTimestamp
+                ? new Date(event.startTimestamp * 1000).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : "TBD",
+              status: event.status?.type || "TBD",
+            };
+          })
+        );
+
+        return enrichedMatches;
       }
 
       date.setDate(date.getDate() - 1);
@@ -70,8 +88,6 @@ export const getleaugeMatches = async (leagueSlug) => {
     return [];
   }
 };
-
-
 
 export const getSeasonId = async (leagueSlug) => {
   const res = await axios.get(
@@ -109,29 +125,43 @@ export const getUpcomingMatches = async (leagueSlug) => {
       });
 
       if (upcomingMatches.length > 0) {
-        return upcomingMatches.map((event) => ({
-          team1: event.homeTeam?.name,
-          team2: event.awayTeam?.name,
-          team1Logo: `https://api.sofascore.app/api/v1/team/${event.homeTeam?.id}/image`,
-          team2Logo: `https://api.sofascore.app/api/v1/team/${event.awayTeam?.id}/image`,
-          score: "-",
-          venue:
-            event.venue?.stadium?.name || event.venue?.name || "Unknown Venue",
-          date: dateStr,
-          time: event.startTimestamp
-            ? new Date(event.startTimestamp * 1000).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })
-            : "TBD",
-          status: event.status?.type || "TBD",
-        }));
+        const enrichedMatches = await Promise.all(
+          upcomingMatches.map(async (event) => {
+            let venueName = "TBD";
+            try {
+              const detailRes = await axios.get(
+                `${BASE_URL}/event/${event.id}`
+              );
+              venueName = detailRes.data?.event?.venue?.name || "TBD";
+            } catch (e) {
+              console.warn(`No venue found for event ${event.id}`);
+            }
+
+            return {
+              team1: event.homeTeam?.name,
+              team2: event.awayTeam?.name,
+              team1Logo: `https://api.sofascore.app/api/v1/team/${event.homeTeam?.id}/image`,
+              team2Logo: `https://api.sofascore.app/api/v1/team/${event.awayTeam?.id}/image`,
+              score: "-",
+              venue: venueName,
+              date: dateStr,
+              time: event.startTimestamp
+                ? new Date(event.startTimestamp * 1000).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : "TBD",
+              status: event.status?.type || "TBD",
+            };
+          })
+        );
+
+        return enrichedMatches;
       }
 
       date.setDate(date.getDate() + 1);
     }
 
-    console.warn(`No upcoming matches found for: ${leagueSlug}`);
     return [];
   } catch (error) {
     console.error("Failed to fetch upcoming matches:", error.message);
@@ -152,56 +182,68 @@ export const getLiveFootballMatches = async () => {
         if (id) {
           return tournamentId === id;
         } else {
-          // fallback to name match
           return tournamentName === slug;
         }
       });
     });
 
-    return filteredEvents.map((event) => {
-      const minute = event.time?.minute;
-      const injuryTime = event.time?.injuryTime;
-      let timeInMatch = "";
+    if (filteredEvents.length > 0) {
+      const enrichedMatches = await Promise.all(
+        filteredEvents.map(async (event) => {
+          let venueName = "Unknown";
+          try {
+            const detailRes = await axios.get(`${BASE_URL}/event/${event.id}`);
+            venueName = detailRes.data?.event?.venue?.name || "TBD";
+          } catch (e) {
+            console.warn(`No venue found for event ${event.id}`);
+          }
+          const minute = event.time?.minute;
+          const injuryTime = event.time?.injuryTime;
+          let timeInMatch = "";
 
-      if (["inprogress", "live"].includes(event.status?.type)) {
-        timeInMatch = injuryTime ? `${minute}+${injuryTime}'` : `${minute}'`;
-      } else if (event.status?.type === "halftime") {
-        timeInMatch = "HT";
-      } else if (event.status?.type === "finished") {
-        timeInMatch = "FT";
-      } else {
-        timeInMatch = "LIVE";
-      }
+          if (["inprogress", "live"].includes(event.status?.type)) {
+            timeInMatch = injuryTime
+              ? `${minute}+${injuryTime}'`
+              : `${minute}'`;
+          } else if (event.status?.type === "halftime") {
+            timeInMatch = "HT";
+          } else if (event.status?.type === "finished") {
+            timeInMatch = "FT";
+          } else {
+            timeInMatch = "LIVE";
+          }
+          return {
+            team1: event.homeTeam?.name,
+            team2: event.awayTeam?.name,
+            team1Logo: `${BASE_URL}/team/${event.homeTeam?.id}/image`,
+            team2Logo: `${BASE_URL}/team/${event.awayTeam?.id}/image`,
+            score: `${event.homeScore?.current ?? "-"} - ${
+              event.awayScore?.current ?? "-"
+            }`,
+            date: `${dateOnly}`,
+            venue: event.venue?.stadium?.name || "Unknown Venue",
+            time: event.startTimestamp
+              ? new Date(event.startTimestamp * 1000).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "TBD",
+            status: event.status?.description || "TBD",
+            tournament: event.tournament?.name || "",
+            minutesInMatch: minute ?? "—",
+            timeInMatch,
+          };
+        })
+      );
+      return enrichedMatches;
+    }
 
-      const today = new Date();
-      const dateOnly = today.toISOString().split("T")[0];
-
-      return {
-        team1: event.homeTeam?.name,
-        team2: event.awayTeam?.name,
-        team1Logo: `${BASE_URL}/team/${event.homeTeam?.id}/image`,
-        team2Logo: `${BASE_URL}/team/${event.awayTeam?.id}/image`,
-        score: `${event.homeScore?.current ?? "-"} - ${event.awayScore?.current ?? "-"}`,
-        date: `${dateOnly}`,
-        venue: event.venue?.stadium?.name || "Unknown Venue",
-        time: event.startTimestamp
-          ? new Date(event.startTimestamp * 1000).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            })
-          : "TBD",
-        status: event.status?.description || "TBD",
-        tournament: event.tournament?.name || "",
-        minutesInMatch: minute ?? "—",
-        timeInMatch,
-      };
-    });
+    return [];
   } catch (error) {
     console.error("Error fetching live matches:", error.message);
     return [];
   }
 };
-
 
 export const getTeamMatches = async (teamName, pageNo) => {
   if (!teamName) {
@@ -210,43 +252,57 @@ export const getTeamMatches = async (teamName, pageNo) => {
   }
 
   try {
-    const searchRes = await axios.get(`${BASE_URL}/search/all`, {
+    const searchData = await axios.get(`${BASE_URL}/search/all/`, {
       params: { q: teamName },
       headers: { Accept: "application/json" },
     });
-    const results = searchRes.data.results;
+    const results = searchData.data.results;
     if (!results || results.length === 0) {
       console.warn(`No search results for: ${teamName}`);
       return [];
     }
 
-    // Step 2: Extract team
-    const teamId = searchRes.data.results
+    const teamId = searchData.data.results
       .filter((r) => r.type === "team")
       .map((r) => r.entity)[0]?.id;
-    const matchRes = await axios.get(
+    const matchData = await axios.get(
       `${BASE_URL}/team/${teamId}/events/last/${pageNo}`
     );
+    const events = matchData.data.events.reverse();
+    if (events.length > 0) {
+      const enrichedMatches = await Promise.all(
+        events.map(async (event) => {
+          let venueName = "Unknown";
+          try {
+            const detailRes = await axios.get(`${BASE_URL}/event/${event.id}`);
+            venueName = detailRes.data?.event?.venue?.name || "TBD";
+          } catch (e) {
+            console.warn(`No venue found for event ${event.id}`);
+          }
+          return {
+            team1: event.homeTeam.name,
+            team2: event.awayTeam.name,
+            team1Logo: `https://api.sofascore.app/api/v1/team/${event.homeTeam.id}/image`,
+            team2Logo: `https://api.sofascore.app/api/v1/team/${event.awayTeam.id}/image`,
+            score: `${event.homeScore?.current ?? "-"} - ${
+              event.awayScore?.current ?? "-"
+            }`,
+            venue: venueName,
+            date: new Date(event.startTimestamp * 1000)
+              .toISOString()
+              .split("T")[0],
+            time: new Date(event.startTimestamp * 1000).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+            status: event.status?.type?.toUpperCase() || "TBD",
+          };
+        })
+      );
+      return enrichedMatches;
+    }
 
-    const events = matchRes.data.events.reverse();
-    console.log(`Fetched ${events.length} events for team ${teamName}`);
-
-    return events.map((event) => ({
-      team1: event.homeTeam.name,
-      team2: event.awayTeam.name,
-      team1Logo: `https://api.sofascore.app/api/v1/team/${event.homeTeam.id}/image`,
-      team2Logo: `https://api.sofascore.app/api/v1/team/${event.awayTeam.id}/image`,
-      score: `${event.homeScore?.current ?? "-"} - ${
-        event.awayScore?.current ?? "-"
-      }`,
-      venue: event.venue?.name || "Unknown",
-      date: new Date(event.startTimestamp * 1000).toISOString().split("T")[0],
-      time: new Date(event.startTimestamp * 1000).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-      status: event.status?.type?.toUpperCase() || "TBD",
-    }));
+    return [];
   } catch (error) {
     console.error("Error fetching match history:", error);
     return [];
