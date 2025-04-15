@@ -252,23 +252,25 @@ export const getTeamMatches = async (teamName, pageNo) => {
   }
 
   try {
-    const searchData = await axios.get(`${BASE_URL}/search/all/`, {
+    const searchRes = await axios.get(`${BASE_URL}/search/all/`, {
       params: { q: teamName },
       headers: { Accept: "application/json" },
     });
-    const results = searchData.data.results;
+    const results = searchRes.data.results;
     if (!results || results.length === 0) {
       console.warn(`No search results for: ${teamName}`);
       return [];
     }
-
-    const teamId = searchData.data.results
+    
+    const teamId = searchRes.data.results
       .filter((r) => r.type === "team")
       .map((r) => r.entity)[0]?.id;
-    const matchData = await axios.get(
+    const matchRes = await axios.get(
       `${BASE_URL}/team/${teamId}/events/last/${pageNo}`
     );
-    const events = matchData.data.events.reverse();
+    
+    const events = matchRes.data.events.reverse();
+    console.log(`Fetched ${events.length} events for team ${teamName}`);
     if (events.length > 0) {
       const enrichedMatches = await Promise.all(
         events.map(async (event) => {
