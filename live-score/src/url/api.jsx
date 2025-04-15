@@ -274,25 +274,27 @@ export const getTeamMatches = async (teamName, pageNo) => {
     if (events.length > 0) {
       const enrichedMatches = await Promise.all(
         events.map(async (event) => {
+          if (!event?.id) {
+            console.warn("Skipping event with missing ID:", event);
+            return null;
+          }
+      
           let venueName = "Unknown";
           try {
             const detailRes = await axios.get(`${BASE_URL}/event/${event.id}`);
             venueName = detailRes.data?.event?.venue?.name || "TBD";
           } catch (e) {
-            console.warn(`No venue found for event ${event.id}`);
+            console.warn(`No venue found for event ${event.id}:`, e.message);
           }
+      
           return {
-            team1: event.homeTeam.name,
-            team2: event.awayTeam.name,
-            team1Logo: `https://api.sofascore.app/api/v1/team/${event.homeTeam.id}/image`,
-            team2Logo: `https://api.sofascore.app/api/v1/team/${event.awayTeam.id}/image`,
-            score: `${event.homeScore?.current ?? "-"} - ${
-              event.awayScore?.current ?? "-"
-            }`,
+            team1: event.homeTeam?.name,
+            team2: event.awayTeam?.name,
+            team1Logo: `https://api.sofascore.app/api/v1/team/${event.homeTeam?.id}/image`,
+            team2Logo: `https://api.sofascore.app/api/v1/team/${event.awayTeam?.id}/image`,
+            score: `${event.homeScore?.current ?? "-"} - ${event.awayScore?.current ?? "-"}`,
             venue: venueName,
-            date: new Date(event.startTimestamp * 1000)
-              .toISOString()
-              .split("T")[0],
+            date: new Date(event.startTimestamp * 1000).toISOString().split("T")[0],
             time: new Date(event.startTimestamp * 1000).toLocaleTimeString([], {
               hour: "2-digit",
               minute: "2-digit",
@@ -301,7 +303,9 @@ export const getTeamMatches = async (teamName, pageNo) => {
           };
         })
       );
-      return enrichedMatches;
+      
+      return enrichedMatches.filter(Boolean);
+      
     }
 
     return [];
