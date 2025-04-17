@@ -263,10 +263,6 @@ export const getTeamMatches = async (teamName, pageNo) => {
     return [];
   }
 
-  const isLocalhost =
-    typeof window !== "undefined" &&
-    (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
-
   try {
     const searchRes = await axios.get(`${BASE_URL}/search/all/`, {
       params: { q: teamName },
@@ -295,51 +291,25 @@ export const getTeamMatches = async (teamName, pageNo) => {
     const events = matchRes.data.events.reverse();
     console.log(`Fetched ${events.length} events for team ${teamName}`);
 
-    if (events.length > 0) {
-      const enrichedMatches = await Promise.all(
-        events.map(async (event) => {
-          if (!event?.id) {
-            console.warn("Skipping event with missing ID:", event);
-            return null;
-          }
+    const enrichedMatches = events.map((event) => {
+      return {
+        team1: event.homeTeam?.name,
+        team2: event.awayTeam?.name,
+        team1Logo: `https://api.sofascore.app/api/v1/team/${event.homeTeam?.id}/image`,
+        team2Logo: `https://api.sofascore.app/api/v1/team/${event.awayTeam?.id}/image`,
+        score: `${event.homeScore?.current ?? "-"} - ${event.awayScore?.current ?? "-"}`,
+        // No venue — remove network call
+        venue: "Unavailable on web version",
+        date: new Date(event.startTimestamp * 1000).toISOString().split("T")[0],
+        time: new Date(event.startTimestamp * 1000).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        status: event.status?.type?.toUpperCase() || "TBD",
+      };
+    });
 
-          let venueName = "Unknown";
-
-          // Only fetch venue details if on localhost
-          if (isLocalhost) {
-            try {
-              const detailRes = await axios.get(`${BASE_URL}/event/${event.id}`);
-              const detailedEvent = detailRes.data?.event;
-              venueName =
-                detailedEvent?.venue?.name ||
-                detailedEvent?.venue?.stadium?.name ||
-                "TBD";
-            } catch (e) {
-              console.warn(`No venue found for event ${event.id}:`, e.message);
-            }
-          }
-
-          return {
-            team1: event.homeTeam?.name,
-            team2: event.awayTeam?.name,
-            team1Logo: `https://api.sofascore.app/api/v1/team/${event.homeTeam?.id}/image`,
-            team2Logo: `https://api.sofascore.app/api/v1/team/${event.awayTeam?.id}/image`,
-            score: `${event.homeScore?.current ?? "-"} - ${event.awayScore?.current ?? "-"}`,
-            venue: venueName,
-            date: new Date(event.startTimestamp * 1000).toISOString().split("T")[0],
-            time: new Date(event.startTimestamp * 1000).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            }),
-            status: event.status?.type?.toUpperCase() || "TBD",
-          };
-        })
-      );
-
-      return enrichedMatches.filter(Boolean); // Remove nulls
-    }
-
-    return [];
+    return enrichedMatches;
   } catch (error) {
     console.error("Error fetching match history:", error);
     return [];
