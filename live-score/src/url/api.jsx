@@ -303,6 +303,7 @@ export const getTeamMatches = async (teamName, pageNo) => {
         } catch (e) {
           console.warn(`Error getting venue name for event ${event.id}:`, e.message);
         }
+
         return {
           team1: event.homeTeam?.name,
           team2: event.awayTeam?.name,
@@ -327,6 +328,16 @@ export const getTeamMatches = async (teamName, pageNo) => {
     return [];
   } catch (error) {
     console.error("Error fetching past matches:", error.message);
+
+    if (error.response) {
+      console.error("Response error status:", error.response.status);
+      console.error("Response error data:", error.response.data);
+    } else if (error.request) {
+      console.error("No response received:", error.request);
+    } else {
+      console.error("Error setting up request:", error.message);
+    }
+    
     return [];
   }
 };
