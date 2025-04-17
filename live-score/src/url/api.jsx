@@ -34,7 +34,7 @@ export const getleaugeMatches = async (leagueSlug) => {
 
       const leagueMatches = events.filter((event) => {
         const tournamentId = event.tournament?.uniqueTournament?.id;
-        const isMatchEarlier = event.startTimestamp * 1000 <= now;
+        const isMatchEarlier = event.startTimestamp * 1000 < now;
         return isMatchEarlier && tournamentId === leagueId;
       });
 
@@ -168,7 +168,6 @@ export const getUpcomingMatches = async (leagueSlug) => {
     return [];
   }
 };
-
 export const getLiveFootballMatches = async () => {
   try {
     const response = await axios.get(`${BASE_URL}/sport/football/events/live`);
@@ -191,12 +190,24 @@ export const getLiveFootballMatches = async () => {
       const enrichedMatches = await Promise.all(
         filteredEvents.map(async (event) => {
           let venueName = "Unknown";
+          let startTime = "TBD";
+
           try {
             const detailRes = await axios.get(`${BASE_URL}/event/${event.id}`);
-            venueName = detailRes.data?.event?.venue?.name || "TBD";
+            const detailedEvent = detailRes.data?.event;
+
+            venueName = detailedEvent?.venue?.name || detailedEvent?.venue?.stadium?.name || "TBD";
+
+            if (detailedEvent?.startTimestamp) {
+              startTime = new Date(detailedEvent.startTimestamp * 1000).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              });
+            }
           } catch (e) {
-            console.warn(`No venue found for event ${event.id}`);
+            console.warn(`No venue/time found for event ${event.id}`);
           }
+
           const minute = event.time?.minute;
           const injuryTime = event.time?.injuryTime;
           let timeInMatch = "";
@@ -212,22 +223,16 @@ export const getLiveFootballMatches = async () => {
           } else {
             timeInMatch = "LIVE";
           }
+
           return {
             team1: event.homeTeam?.name,
             team2: event.awayTeam?.name,
             team1Logo: `${BASE_URL}/team/${event.homeTeam?.id}/image`,
             team2Logo: `${BASE_URL}/team/${event.awayTeam?.id}/image`,
-            score: `${event.homeScore?.current ?? "-"} - ${
-              event.awayScore?.current ?? "-"
-            }`,
-            date: `${dateOnly}`,
-            venue: event.venue?.stadium?.name || "Unknown Venue",
-            time: event.startTimestamp
-              ? new Date(event.startTimestamp * 1000).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })
-              : "TBD",
+            score: `${event.homeScore?.current ?? "-"} - ${event.awayScore?.current ?? "-"}`,
+            date: new Date(event.startTimestamp * 1000).toLocaleDateString(), // fallback
+            venue: venueName,
+            time: startTime,
             status: event.status?.description || "TBD",
             tournament: event.tournament?.name || "",
             minutesInMatch: minute ?? "—",
@@ -295,7 +300,7 @@ export const getTeamMatches = async (teamName, pageNo) => {
             score: `${event.homeScore?.current ?? "-"} - ${
               event.awayScore?.current ?? "-"
             }`,
-            venue: venueName.venue?.name || "TBD",
+            venue: venueName.venue?.name || "Unknown",
             date: new Date(event.startTimestamp * 1000)
               .toISOString()
               .split("T")[0],
@@ -308,7 +313,7 @@ export const getTeamMatches = async (teamName, pageNo) => {
         })
       );
 
-      return enrichedMatches.filter(Boolean);
+      return enrichedMatches;
     }
 
     return [];
