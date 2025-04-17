@@ -275,9 +275,8 @@ export const getTeamMatches = async (teamName, pageNo) => {
       return [];
     }
 
-    const teamId = results
-      .filter((r) => r.type === "team")
-      .map((r) => r.entity)[0]?.id;
+    const teamResult = results.find((r) => r.type === "team");
+    const teamId = teamResult?.entity?.id;
 
     if (!teamId) {
       console.warn(`No team ID found for: ${teamName}`);
@@ -289,29 +288,23 @@ export const getTeamMatches = async (teamName, pageNo) => {
     );
 
     const events = matchRes.data.events.reverse();
-    console.log(`Fetched ${events.length} events for team ${teamName}`);
 
-    const enrichedMatches = events.map((event) => {
-      return {
-        team1: event.homeTeam?.name,
-        team2: event.awayTeam?.name,
-        team1Logo: `https://api.sofascore.app/api/v1/team/${event.homeTeam?.id}/image`,
-        team2Logo: `https://api.sofascore.app/api/v1/team/${event.awayTeam?.id}/image`,
-        score: `${event.homeScore?.current ?? "-"} - ${event.awayScore?.current ?? "-"}`,
-        // No venue — remove network call
-        venue: "Unavailable on web version",
-        date: new Date(event.startTimestamp * 1000).toISOString().split("T")[0],
-        time: new Date(event.startTimestamp * 1000).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        status: event.status?.type?.toUpperCase() || "TBD",
-      };
-    });
-
-    return enrichedMatches;
+    return events.map((event) => ({
+      team1: event.homeTeam?.name ?? "Home Team",
+      team2: event.awayTeam?.name ?? "Away Team",
+      team1Logo: `https://api.sofascore.app/api/v1/team/${event.homeTeam?.id}/image`,
+      team2Logo: `https://api.sofascore.app/api/v1/team/${event.awayTeam?.id}/image`,
+      score: `${event.homeScore?.current ?? "-"} - ${event.awayScore?.current ?? "-"}`,
+      venue: event.venue?.name ?? "Venue Unavailable", // if venue exists here, use it
+      date: new Date(event.startTimestamp * 1000).toISOString().split("T")[0],
+      time: new Date(event.startTimestamp * 1000).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      status: event.status?.type?.toUpperCase() || "TBD",
+    }));
   } catch (error) {
-    console.error("Error fetching match history:", error);
+    console.error("Error fetching match history:", error.message);
     return [];
   }
 };
