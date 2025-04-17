@@ -287,7 +287,7 @@ export const getTeamMatches = async (teamName, pageNo) => {
           let venueName = "Unknown";
           try {
             const detailRes = await axios.get(`${BASE_URL}/event/${event.id}`);
-            venueName = detailRes.data?.event;
+            venueName = detailRes.data?.event?.venue?.name;
           } catch (e) {
             console.warn(`No venue found for event ${event.id}:`, e.message);
           }
@@ -300,7 +300,7 @@ export const getTeamMatches = async (teamName, pageNo) => {
             score: `${event.homeScore?.current ?? "-"} - ${
               event.awayScore?.current ?? "-"
             }`,
-            venue: venueName.venue?.name || "Unknown",
+            venue: venueName || "Unknown",
             date: new Date(event.startTimestamp * 1000)
               .toISOString()
               .split("T")[0],
