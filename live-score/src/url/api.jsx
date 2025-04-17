@@ -263,26 +263,38 @@ export const getTeamMatches = async (teamName, pageNo) => {
     return [];
   }
 
+  const isLocalhost =
+    typeof window !== "undefined" &&
+    (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+
   try {
     const searchRes = await axios.get(`${BASE_URL}/search/all/`, {
       params: { q: teamName },
       headers: { Accept: "application/json" },
     });
+
     const results = searchRes.data.results;
     if (!results || results.length === 0) {
       console.warn(`No search results for: ${teamName}`);
       return [];
     }
 
-    const teamId = searchRes.data.results
+    const teamId = results
       .filter((r) => r.type === "team")
       .map((r) => r.entity)[0]?.id;
+
+    if (!teamId) {
+      console.warn(`No team ID found for: ${teamName}`);
+      return [];
+    }
+
     const matchRes = await axios.get(
       `${BASE_URL}/team/${teamId}/events/last/${pageNo}`
     );
 
     const events = matchRes.data.events.reverse();
     console.log(`Fetched ${events.length} events for team ${teamName}`);
+
     if (events.length > 0) {
       const enrichedMatches = await Promise.all(
         events.map(async (event) => {
@@ -291,16 +303,12 @@ export const getTeamMatches = async (teamName, pageNo) => {
             return null;
           }
 
-          const isLocalhost =
-            typeof window !== "undefined" &&
-            window.location.hostname === "localhost";
           let venueName = "Unknown";
 
+          // Only fetch venue details if on localhost
           if (isLocalhost) {
             try {
-              const detailRes = await axios.get(
-                `${BASE_URL}/event/${event.id}`
-              );
+              const detailRes = await axios.get(`${BASE_URL}/event/${event.id}`);
               const detailedEvent = detailRes.data?.event;
               venueName =
                 detailedEvent?.venue?.name ||
@@ -316,13 +324,9 @@ export const getTeamMatches = async (teamName, pageNo) => {
             team2: event.awayTeam?.name,
             team1Logo: `https://api.sofascore.app/api/v1/team/${event.homeTeam?.id}/image`,
             team2Logo: `https://api.sofascore.app/api/v1/team/${event.awayTeam?.id}/image`,
-            score: `${event.homeScore?.current ?? "-"} - ${
-              event.awayScore?.current ?? "-"
-            }`,
+            score: `${event.homeScore?.current ?? "-"} - ${event.awayScore?.current ?? "-"}`,
             venue: venueName,
-            date: new Date(event.startTimestamp * 1000)
-              .toISOString()
-              .split("T")[0],
+            date: new Date(event.startTimestamp * 1000).toISOString().split("T")[0],
             time: new Date(event.startTimestamp * 1000).toLocaleTimeString([], {
               hour: "2-digit",
               minute: "2-digit",
@@ -332,7 +336,7 @@ export const getTeamMatches = async (teamName, pageNo) => {
         })
       );
 
-      return enrichedMatches.filter(Boolean);
+      return enrichedMatches.filter(Boolean); // Remove nulls
     }
 
     return [];
