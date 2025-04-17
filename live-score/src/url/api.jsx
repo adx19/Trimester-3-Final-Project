@@ -293,16 +293,6 @@ export const getTeamMatches = async (teamName, pageNo) => {
             return null;
           }
 
-          let venueName = "Unknown";
-          const venueId = event.venue?.id;
-          if (venueId) {
-            try {
-              const venueRes = await axios.get(`${BASE_URL}/venue/${venueId}`);
-              venueName = venueRes.data?.venue?.name || "Unknown";
-            } catch (e) {
-              console.warn(`No venue info for venue ID ${venueId}:`, e.message);
-            }
-          }
 
           return {
             team1: event.homeTeam?.name,
@@ -310,7 +300,7 @@ export const getTeamMatches = async (teamName, pageNo) => {
             team1Logo: `https://api.sofascore.app/api/v1/team/${event.homeTeam?.id}/image`,
             team2Logo: `https://api.sofascore.app/api/v1/team/${event.awayTeam?.id}/image`,
             score: `${event.homeScore?.current ?? "-"} - ${event.awayScore?.current ?? "-"}`,
-            venue: venueName,
+            venue: event?.venue?.name || "Data Issue",
             date: new Date(event.startTimestamp * 1000).toISOString().split("T")[0],
             time: new Date(event.startTimestamp * 1000).toLocaleTimeString([], {
               hour: "2-digit",
