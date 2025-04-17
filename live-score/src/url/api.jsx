@@ -257,6 +257,9 @@ export const getLiveFootballMatches = async () => {
   }
 };
 
+const corsProxy = 'https://cors-anywhere.herokuapp.com/';
+
+
 export const getTeamMatches = async (teamName, pageNo) => {
   if (!teamName) {
     console.warn("No team name provided");
@@ -265,7 +268,7 @@ export const getTeamMatches = async (teamName, pageNo) => {
 
   try {
     // Search for the team by name
-    const searchRes = await axios.get(`${BASE_URL}/search/all/`, {
+    const searchRes = await axios.get(`${corsProxy}${BASE_URL}/search/all/`, {
       params: { q: teamName },
       headers: { Accept: "application/json" },
     });
@@ -288,7 +291,7 @@ export const getTeamMatches = async (teamName, pageNo) => {
 
     // Fetch past matches for the team
     const matchRes = await axios.get(
-      `${BASE_URL}/team/${teamId}/events/last/${pageNo}`
+      `${corsProxy}${BASE_URL}/team/${teamId}/events/last/${pageNo}`
     );
 
     const events = matchRes.data.events.reverse(); // Reverse to get the most recent match first
@@ -299,7 +302,7 @@ export const getTeamMatches = async (teamName, pageNo) => {
         let venueName = "Unknown";
         try {
           // If needed, try to get venue name
-          venueName = event.venue?.name || "Unknown";
+          venueName = event.venue?.name || "TBD";
         } catch (e) {
           console.warn(`Error getting venue name for event ${event.id}:`, e.message);
         }
