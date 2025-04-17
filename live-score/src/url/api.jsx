@@ -287,7 +287,9 @@ export const getTeamMatches = async (teamName, pageNo) => {
           let venueName = "Unknown";
           try {
             const detailRes = await axios.get(`${BASE_URL}/event/${event.id}`);
-            venueName = detailRes.data?.event?.venue?.name;
+            const detailedEvent = detailRes.data?.event;
+
+            venueName = detailedEvent?.venue?.name || detailedEvent?.venue?.stadium?.name || "TBD";
           } catch (e) {
             console.warn(`No venue found for event ${event.id}:`, e.message);
           }
