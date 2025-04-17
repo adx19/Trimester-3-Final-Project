@@ -257,8 +257,7 @@ export const getLiveFootballMatches = async () => {
   }
 };
 
-const corsProxy = 'https://cors-anywhere.herokuapp.com/';
-
+const corsProxy = "https://cors-anywhere.herokuapp.com/";
 
 export const getTeamMatches = async (teamName, pageNo) => {
   if (!teamName) {
@@ -268,19 +267,20 @@ export const getTeamMatches = async (teamName, pageNo) => {
 
   try {
     // Search for the team by name
-    const searchRes = await axios.get(`${corsProxy}${BASE_URL}/search/all/`, {
-      params: { q: teamName },
-      headers: { Accept: "application/json" },
-    });
+    const searchRes = await axios.get(
+      `${corsProxy}${encodeURIComponent(
+        `${BASE_URL}/search/all/`
+      )}?q=${teamName}`
+    );
+    const results = searchRes.data.contents;
+    const parsedResults = JSON.parse(results);
 
-    const results = searchRes.data.results;
-    if (!results || results.length === 0) {
+    if (!parsedResults || parsedResults.length === 0) {
       console.warn(`No search results for: ${teamName}`);
       return [];
     }
 
-    // Extract teamId from search results
-    const teamId = results
+    const teamId = parsedResults
       .filter((r) => r.type === "team")
       .map((r) => r.entity)[0]?.id;
 
@@ -291,20 +291,24 @@ export const getTeamMatches = async (teamName, pageNo) => {
 
     // Fetch past matches for the team
     const matchRes = await axios.get(
-      `${corsProxy}${BASE_URL}/team/${teamId}/events/last/${pageNo}`
+      `${corsProxy}${encodeURIComponent(
+        `${BASE_URL}/team/${teamId}/events/last/${pageNo}`
+      )}`
     );
 
-    const events = matchRes.data.events.reverse(); // Reverse to get the most recent match first
+    const events = JSON.parse(matchRes.data.contents).events.reverse(); // Reverse to get the most recent match first
     console.log(`Fetched ${events.length} events for team ${teamName}`);
 
     if (events.length > 0) {
       const enrichedMatches = events.map((event) => {
         let venueName = "Unknown";
         try {
-          // If needed, try to get venue name
           venueName = event.venue?.name || "TBD";
         } catch (e) {
-          console.warn(`Error getting venue name for event ${event.id}:`, e.message);
+          console.warn(
+            `Error getting venue name for event ${event.id}:`,
+            e.message
+          );
         }
 
         return {
@@ -312,11 +316,13 @@ export const getTeamMatches = async (teamName, pageNo) => {
           team2: event.awayTeam?.name,
           team1Logo: `https://api.sofascore.app/api/v1/team/${event.homeTeam?.id}/image`,
           team2Logo: `https://api.sofascore.app/api/v1/team/${event.awayTeam?.id}/image`,
-          score: `${event.homeScore?.current ?? "-"} - ${event.awayScore?.current ?? "-"}`,
+          score: `${event.homeScore?.current ?? "-"} - ${
+            event.awayScore?.current ?? "-"
+          }`,
           venue: venueName,
           date: new Date(event.startTimestamp * 1000)
             .toISOString()
-            .split("T")[0],  // Format: YYYY-MM-DD
+            .split("T")[0], // Format: YYYY-MM-DD
           time: new Date(event.startTimestamp * 1000).toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
@@ -331,7 +337,6 @@ export const getTeamMatches = async (teamName, pageNo) => {
     return [];
   } catch (error) {
     console.error("Error fetching past matches:", error.message);
-
     if (error.response) {
       console.error("Response error status:", error.response.status);
       console.error("Response error data:", error.response.data);
@@ -340,7 +345,6 @@ export const getTeamMatches = async (teamName, pageNo) => {
     } else {
       console.error("Error setting up request:", error.message);
     }
-    
     return [];
   }
 };
