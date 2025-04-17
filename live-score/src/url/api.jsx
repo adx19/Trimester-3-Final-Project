@@ -332,7 +332,7 @@ export const getTeamMatches = async (teamName, pageNo) => {
         })
       );
 
-      return enrichedMatches;
+      return enrichedMatches.filter(Boolean);
     }
 
     return [];
