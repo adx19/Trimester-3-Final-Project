@@ -196,10 +196,15 @@ export const getLiveFootballMatches = async () => {
             const detailRes = await axios.get(`${BASE_URL}/event/${event.id}`);
             const detailedEvent = detailRes.data?.event;
 
-            venueName = detailedEvent?.venue?.name || detailedEvent?.venue?.stadium?.name || "TBD";
+            venueName =
+              detailedEvent?.venue?.name ||
+              detailedEvent?.venue?.stadium?.name ||
+              "TBD";
 
             if (detailedEvent?.startTimestamp) {
-              startTime = new Date(detailedEvent.startTimestamp * 1000).toLocaleTimeString([], {
+              startTime = new Date(
+                detailedEvent.startTimestamp * 1000
+              ).toLocaleTimeString([], {
                 hour: "2-digit",
                 minute: "2-digit",
               });
@@ -229,7 +234,9 @@ export const getLiveFootballMatches = async () => {
             team2: event.awayTeam?.name,
             team1Logo: `${BASE_URL}/team/${event.homeTeam?.id}/image`,
             team2Logo: `${BASE_URL}/team/${event.awayTeam?.id}/image`,
-            score: `${event.homeScore?.current ?? "-"} - ${event.awayScore?.current ?? "-"}`,
+            score: `${event.homeScore?.current ?? "-"} - ${
+              event.awayScore?.current ?? "-"
+            }`,
             date: new Date(event.startTimestamp * 1000).toLocaleDateString(), // fallback
             venue: venueName,
             time: startTime,
@@ -284,14 +291,24 @@ export const getTeamMatches = async (teamName, pageNo) => {
             return null;
           }
 
+          const isLocalhost =
+            typeof window !== "undefined" &&
+            window.location.hostname === "localhost";
           let venueName = "Unknown";
-          try {
-            const detailRes = await axios.get(`${BASE_URL}/event/${event.id}`);
-            const detailedEvent = detailRes.data?.event;
 
-            venueName = detailedEvent?.venue?.name || detailedEvent?.venue?.stadium?.name || "TBD";
-          } catch (e) {
-            console.warn(`No venue found for event ${event.id}:`, e.message);
+          if (isLocalhost) {
+            try {
+              const detailRes = await axios.get(
+                `${BASE_URL}/event/${event.id}`
+              );
+              const detailedEvent = detailRes.data?.event;
+              venueName =
+                detailedEvent?.venue?.name ||
+                detailedEvent?.venue?.stadium?.name ||
+                "TBD";
+            } catch (e) {
+              console.warn(`No venue found for event ${event.id}:`, e.message);
+            }
           }
 
           return {
