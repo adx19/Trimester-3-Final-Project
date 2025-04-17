@@ -295,7 +295,7 @@ export const getTeamMatches = async (teamName, pageNo) => {
       team1Logo: `https://api.sofascore.app/api/v1/team/${event.homeTeam?.id}/image`,
       team2Logo: `https://api.sofascore.app/api/v1/team/${event.awayTeam?.id}/image`,
       score: `${event.homeScore?.current ?? "-"} - ${event.awayScore?.current ?? "-"}`,
-      venue: event.venue?.name ?? "Venue Unavailable", // if venue exists here, use it
+      venue: event.venue?.name ?? "Unknown",
       date: new Date(event.startTimestamp * 1000).toISOString().split("T")[0],
       time: new Date(event.startTimestamp * 1000).toLocaleTimeString([], {
         hour: "2-digit",
