@@ -302,7 +302,7 @@ export const getTeamMatches = async (teamName, pageNo) => {
             score: `${event.homeScore?.current ?? "-"} - ${
               event.awayScore?.current ?? "-"
             }`,
-            venue: venueName || "Unknown",
+            venue: venueName,
             date: new Date(event.startTimestamp * 1000)
               .toISOString()
               .split("T")[0],
