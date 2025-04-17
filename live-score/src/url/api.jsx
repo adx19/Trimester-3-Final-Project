@@ -274,15 +274,17 @@ export const getTeamMatches = async (teamName, pageNo) => {
       return [];
     }
 
-    const teamId = searchRes.data.results
+    const teamId = results
       .filter((r) => r.type === "team")
       .map((r) => r.entity)[0]?.id;
+
     const matchRes = await axios.get(
       `${BASE_URL}/team/${teamId}/events/last/${pageNo}`
     );
 
     const events = matchRes.data.events.reverse();
     console.log(`Fetched ${events.length} events for team ${teamName}`);
+
     if (events.length > 0) {
       const enrichedMatches = await Promise.all(
         events.map(async (event) => {
@@ -292,11 +294,14 @@ export const getTeamMatches = async (teamName, pageNo) => {
           }
 
           let venueName = "Unknown";
-          try {
-            const detailRes = await axios.get(`${BASE_URL}/event/${event.id}`);
-            venueName = detailRes.data?.event;
-          } catch (e) {
-            console.warn(`No venue found for event ${event.id}:`, e.message);
+          const venueId = event.venue?.id;
+          if (venueId) {
+            try {
+              const venueRes = await axios.get(`${BASE_URL}/venue/${venueId}`);
+              venueName = venueRes.data?.venue?.name || "Unknown";
+            } catch (e) {
+              console.warn(`No venue info for venue ID ${venueId}:`, e.message);
+            }
           }
 
           return {
@@ -304,12 +309,9 @@ export const getTeamMatches = async (teamName, pageNo) => {
             team2: event.awayTeam?.name,
             team1Logo: `https://api.sofascore.app/api/v1/team/${event.homeTeam?.id}/image`,
             team2Logo: `https://api.sofascore.app/api/v1/team/${event.awayTeam?.id}/image`,
-            score: `${event.homeScore?.current ?? "-"} - ${
-              event.awayScore?.current ?? "-"}`,
-            venue: venueName.venue?.name || "Unknown",
-            date: new Date(event.startTimestamp * 1000)
-              .toISOString()
-              .split("T")[0],
+            score: `${event.homeScore?.current ?? "-"} - ${event.awayScore?.current ?? "-"}`,
+            venue: venueName,
+            date: new Date(event.startTimestamp * 1000).toISOString().split("T")[0],
             time: new Date(event.startTimestamp * 1000).toLocaleTimeString([], {
               hour: "2-digit",
               minute: "2-digit",
