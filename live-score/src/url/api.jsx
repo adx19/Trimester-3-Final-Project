@@ -264,59 +264,69 @@ export const getTeamMatches = async (teamName, pageNo) => {
   }
 
   try {
+    // Search for the team by name
     const searchRes = await axios.get(`${BASE_URL}/search/all/`, {
       params: { q: teamName },
       headers: { Accept: "application/json" },
     });
+
     const results = searchRes.data.results;
     if (!results || results.length === 0) {
       console.warn(`No search results for: ${teamName}`);
       return [];
     }
 
+    // Extract teamId from search results
     const teamId = results
       .filter((r) => r.type === "team")
       .map((r) => r.entity)[0]?.id;
 
+    if (!teamId) {
+      console.warn("No team ID found");
+      return [];
+    }
+
+    // Fetch past matches for the team
     const matchRes = await axios.get(
       `${BASE_URL}/team/${teamId}/events/last/${pageNo}`
     );
 
-    const events = matchRes.data.events.reverse();
+    const events = matchRes.data.events.reverse(); // Reverse to get the most recent match first
     console.log(`Fetched ${events.length} events for team ${teamName}`);
 
     if (events.length > 0) {
-      const enrichedMatches = await Promise.all(
-        events.map(async (event) => {
-          if (!event?.id) {
-            console.warn("Skipping event with missing ID:", event);
-            return null;
-          }
+      const enrichedMatches = events.map((event) => {
+        let venueName = "Unknown";
+        try {
+          // If needed, try to get venue name
+          venueName = event.venue?.name || "Unknown";
+        } catch (e) {
+          console.warn(`Error getting venue name for event ${event.id}:`, e.message);
+        }
+        return {
+          team1: event.homeTeam?.name,
+          team2: event.awayTeam?.name,
+          team1Logo: `https://api.sofascore.app/api/v1/team/${event.homeTeam?.id}/image`,
+          team2Logo: `https://api.sofascore.app/api/v1/team/${event.awayTeam?.id}/image`,
+          score: `${event.homeScore?.current ?? "-"} - ${event.awayScore?.current ?? "-"}`,
+          venue: venueName,
+          date: new Date(event.startTimestamp * 1000)
+            .toISOString()
+            .split("T")[0],  // Format: YYYY-MM-DD
+          time: new Date(event.startTimestamp * 1000).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          status: event.status?.description || "TBD",
+        };
+      });
 
-
-          return {
-            team1: event.homeTeam?.name,
-            team2: event.awayTeam?.name,
-            team1Logo: `https://api.sofascore.app/api/v1/team/${event.homeTeam?.id}/image`,
-            team2Logo: `https://api.sofascore.app/api/v1/team/${event.awayTeam?.id}/image`,
-            score: `${event.homeScore?.current ?? "-"} - ${event.awayScore?.current ?? "-"}`,
-            venue: event?.venue?.name || "Data Issue",
-            date: new Date(event.startTimestamp * 1000).toISOString().split("T")[0],
-            time: new Date(event.startTimestamp * 1000).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            }),
-            status: event.status?.type?.toUpperCase() || "TBD",
-          };
-        })
-      );
-
-      return enrichedMatches.filter(Boolean);
+      return enrichedMatches;
     }
 
     return [];
   } catch (error) {
-    console.error("Error fetching match history:", error);
+    console.error("Error fetching past matches:", error.message);
     return [];
   }
 };
