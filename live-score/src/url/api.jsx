@@ -1,12 +1,35 @@
 import axios, { all } from "axios";
 const BASE_URL = "https://api.sofascore.com/api/v1";
-
 export const getTeamData = async (teamName) => {
-  const data = await axios.get(`${BASE_URL}/searchteams.php?t=${teamName}`);
-  return data.data.teams?.[res.data.events.length - 1];
+  if (!teamName) {
+    console.warn("No team name provided");
+    return null;
+  }
+
+  try {
+    const res = await axios.get(`${BASE_URL}/search/all/`, {
+      params: { q: teamName },
+      headers: { Accept: "application/json" },
+    });
+
+    const teams = res.data.results?.filter((item) => item.type === "team");
+
+    if (!teams || teams.length === 0) {
+      console.warn(`No teams found for: ${teamName}`);
+      return null;
+    }
+
+    const matchedTeam = teams.find(
+      (t) => t.entity?.name?.toLowerCase() === teamName.toLowerCase()
+    ) || teams[0];
+
+    return matchedTeam.entity?.id || null;
+  } catch (error) {
+    console.error("Error fetching team data:", error);
+    return null;
+  }
 };
 
-const normalize = (str) => str?.toLowerCase().replace(/[^a-z]/g, "");
 
 import { leagueSlugToId } from "../../public/league names/league-names";
 
@@ -55,6 +78,7 @@ export const getleaugeMatches = async (leagueSlug) => {
             }
 
             return {
+              id: event.id,
               team1: event.homeTeam?.name,
               team2: event.awayTeam?.name,
               team1Logo: `https://api.sofascore.app/api/v1/team/${event.homeTeam?.id}/image`,
@@ -138,6 +162,7 @@ export const getUpcomingMatches = async (leagueSlug) => {
             }
 
             return {
+              id: event.id,
               team1: event.homeTeam?.name,
               team2: event.awayTeam?.name,
               team1Logo: `https://api.sofascore.app/api/v1/team/${event.homeTeam?.id}/image`,
@@ -186,76 +211,50 @@ export const getLiveFootballMatches = async () => {
       });
     });
 
-    if (filteredEvents.length > 0) {
-      const enrichedMatches = await Promise.all(
-        filteredEvents.map(async (event) => {
-          let venueName = "Unknown";
-          let startTime = "TBD";
+    const enrichedMatches = filteredEvents.map((event) => {
+      const minute = event.time?.minute;
+      const injuryTime = event.time?.injuryTime;
+      let timeInMatch = "";
 
-          try {
-            const detailRes = await axios.get(`${BASE_URL}/event/${event.id}`);
-            const detailedEvent = detailRes.data?.event;
+      if (["inprogress", "live"].includes(event.status?.type)) {
+        timeInMatch = injuryTime
+          ? `${minute}+${injuryTime}'`
+          : `${minute}'`;
+      } else if (event.status?.type === "halftime") {
+        timeInMatch = "HT";
+      } else if (event.status?.type === "finished") {
+        timeInMatch = "FT";
+      } else {
+        timeInMatch = "LIVE";
+      }
 
-            venueName =
-              detailedEvent?.venue?.name ||
-              detailedEvent?.venue?.stadium?.name ||
-              "TBD";
+      return {
+        id: event.id,
+        team1: event.homeTeam?.name,
+        team2: event.awayTeam?.name,
+        team1Logo: `${BASE_URL}/team/${event.homeTeam?.id}/image`,
+        team2Logo: `${BASE_URL}/team/${event.awayTeam?.id}/image`,
+        score: `${event.homeScore?.current ?? "-"} - ${event.awayScore?.current ?? "-"}`,
+        date: new Date(event.startTimestamp * 1000).toLocaleDateString(),
+        venue: event.venue?.name || "Unknown", // ✅ get venue directly
+        time: new Date(event.startTimestamp * 1000).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        status: event.status?.description || "TBD",
+        tournament: event.tournament?.name || "",
+        minutesInMatch: minute ?? "—",
+        timeInMatch,
+      };
+    });
 
-            if (detailedEvent?.startTimestamp) {
-              startTime = new Date(
-                detailedEvent.startTimestamp * 1000
-              ).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              });
-            }
-          } catch (e) {
-            console.warn(`No venue/time found for event ${event.id}`);
-          }
-
-          const minute = event.time?.minute;
-          const injuryTime = event.time?.injuryTime;
-          let timeInMatch = "";
-
-          if (["inprogress", "live"].includes(event.status?.type)) {
-            timeInMatch = injuryTime
-              ? `${minute}+${injuryTime}'`
-              : `${minute}'`;
-          } else if (event.status?.type === "halftime") {
-            timeInMatch = "HT";
-          } else if (event.status?.type === "finished") {
-            timeInMatch = "FT";
-          } else {
-            timeInMatch = "LIVE";
-          }
-
-          return {
-            team1: event.homeTeam?.name,
-            team2: event.awayTeam?.name,
-            team1Logo: `${BASE_URL}/team/${event.homeTeam?.id}/image`,
-            team2Logo: `${BASE_URL}/team/${event.awayTeam?.id}/image`,
-            score: `${event.homeScore?.current ?? "-"} - ${
-              event.awayScore?.current ?? "-"
-            }`,
-            date: new Date(event.startTimestamp * 1000).toLocaleDateString(), // fallback
-            venue: venueName,
-            time: startTime,
-            status: event.status?.description || "TBD",
-            tournament: event.tournament?.name || "",
-            minutesInMatch: minute ?? "—",
-            timeInMatch,
-          };
-        })
-      );
-      return enrichedMatches;
-    }
-
-    return [];
+    return enrichedMatches;
   } catch (error) {
     console.error("Error fetching live matches:", error.message);
     return [];
   }
 };
+
 
 const corsProxy = "https://cors-anywhere.herokuapp.com/";
 
@@ -266,21 +265,21 @@ export const getTeamMatches = async (teamName, pageNo) => {
   }
 
   try {
-    // Search for the team by name
     const searchRes = await axios.get(
-      `${corsProxy}${encodeURIComponent(
-        `${BASE_URL}/search/all/`
-      )}?q=${teamName}`
+      `${BASE_URL}/search/all/`,
+      {
+        params: { q: teamName },
+        headers: { Accept: "application/json" },
+      }
     );
-    const results = searchRes.data.contents;
-    const parsedResults = JSON.parse(results);
+    const results = searchRes.data.results;
 
-    if (!parsedResults || parsedResults.length === 0) {
+    if (!results || results.length === 0) {
       console.warn(`No search results for: ${teamName}`);
       return [];
     }
 
-    const teamId = parsedResults
+    const teamId = results
       .filter((r) => r.type === "team")
       .map((r) => r.entity)[0]?.id;
 
@@ -289,29 +288,21 @@ export const getTeamMatches = async (teamName, pageNo) => {
       return [];
     }
 
-    // Fetch past matches for the team
     const matchRes = await axios.get(
-      `${corsProxy}${encodeURIComponent(
-        `${BASE_URL}/team/${teamId}/events/last/${pageNo}`
-      )}`
+      `${BASE_URL}/team/${teamId}/events/last/${pageNo}`,
+      {
+        headers: { Accept: "application/json" },
+      }
     );
 
-    const events = JSON.parse(matchRes.data.contents).events.reverse(); // Reverse to get the most recent match first
+    const events = matchRes.data.events.reverse(); // Reverse to get the most recent match first
     console.log(`Fetched ${events.length} events for team ${teamName}`);
 
     if (events.length > 0) {
       const enrichedMatches = events.map((event) => {
-        let venueName = "Unknown";
-        try {
-          venueName = event.venue?.name || "TBD";
-        } catch (e) {
-          console.warn(
-            `Error getting venue name for event ${event.id}:`,
-            e.message
-          );
-        }
-
+        let venueName = event.venue?.name || "Unknown"; // Directly fetch venue from event
         return {
+          id: event.id,
           team1: event.homeTeam?.name,
           team2: event.awayTeam?.name,
           team1Logo: `https://api.sofascore.app/api/v1/team/${event.homeTeam?.id}/image`,
@@ -346,5 +337,18 @@ export const getTeamMatches = async (teamName, pageNo) => {
       console.error("Error setting up request:", error.message);
     }
     return [];
+  }
+};
+
+
+export const getMatchDetails = async (id) => {
+  try {
+    const response = await axios.get(
+      `https://api.sofascore.com/api/v1/event/${id}`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching match details:", error);
+    throw error;
   }
 };

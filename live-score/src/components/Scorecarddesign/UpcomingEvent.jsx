@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { getUpcomingMatches } from '../../url/api';
+import { getMatchId } from '../../context/context';
 
 function UpcomingEvent({ leagueName }) {
   const [fixtures, setFixtures] = useState([]);
+  const{getId} = getMatchId();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -11,6 +13,7 @@ function UpcomingEvent({ leagueName }) {
       setFixtures(data);
     };
 
+    getId(null);
     fetchData();
   }, []);
 
@@ -23,6 +26,9 @@ function UpcomingEvent({ leagueName }) {
             <div
               key={idx}
               className="border-2 rounded-2xl border-emerald-500 w-[320px] h-[260px] flex flex-col items-center justify-between p-4 shadow-lg transition-transform duration-300 hover:-translate-y-5 -translate-x-5 cursor-pointer"
+              onClick={() => {
+                getId(match.id)
+              }}
             >
               <div className="text-xl font-bold">
                 {match.team1} vs {match.team2}

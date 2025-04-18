@@ -2,41 +2,59 @@ import React, { useEffect, useState } from "react";
 import { getTeamMatches } from "../url/api";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowLeft, faArrowRight } from "@fortawesome/free-solid-svg-icons";
+import { getMatchId } from "../context/context";
+
 function MatchList({ leagueName }) {
   const [fixtures, setfixtures] = useState([]);
   const [count, setcount] = useState(1);
+  const { id , getId } = getMatchId();
 
-  function increment(){
-    setcount(count+1);
+  function increment() {
+    setcount(count + 1);
   }
-  function decrement(){
-    setcount(count-1);
+
+  function decrement() {
+    setcount(count - 1);
   }
+
+  function handleMatchClick(matchId){
+    getId(matchId);
+  }
+
+  useEffect(() => {
+   getId(null)
+  }, [])
+
   useEffect(() => {
     if (!leagueName) return;
 
     const matchHistory = async () => {
       try {
-        const data = await getTeamMatches(leagueName, count-1);
+        const data = await getTeamMatches(leagueName, count - 1);
         if (data) {
           setfixtures(data);
         }
+        
       } catch (err) {
         console.error("Failed to fetch match history:", err);
       }
     };
 
     matchHistory();
-  }, [leagueName,count]);
+  }, [leagueName, count, id]);
 
   return (
     <div>
       <div className="flex flex-col flex-wrap items-center font-bold text-2xl text-emerald-500">
-        <div className="font-bold flex flex-row justify-start flex-wrap gap-15 p-4 ml-[30px] webkit-scrollbar::none mt-[8px] border-b-[2px] w-full border-b-[2px] border-emerald-500  ">
+        <div className="font-bold flex flex-row justify-start flex-wrap gap-15 p-4 ml-[30px] webkit-scrollbar::none mt-[8px] border-b-[2px] w-full border-b-[2px] border-emerald-500">
           {fixtures.map((match, idx) => (
             <div
               key={idx}
               className="border-2 rounded-2xl border-emerald-500 w-[320px] h-[260px] flex flex-col items-center justify-between p-4 shadow-lg transition-transform duration-300 hover:-translate-y-5 -translate-x-5 cursor-pointer"
+              onClick={() => {
+                handleMatchClick(match.id)
+                console.log(match.id)
+              }}
             >
               <div className="text-xl font-bold">
                 {match.team1} vs {match.team2}
@@ -79,13 +97,11 @@ function MatchList({ leagueName }) {
             </div>
           ))}
         </div>
-        <div className="flex justify-center text-2xl text-emerald-500 font-bold  h-[5vh] mb-[20px] mt-[20px] gap-8 flex-row items-center">
-          {count > 1 ? (
-            <button onClick={() => decrement()} disabled={count == 1}>
+        <div className="flex justify-center text-2xl text-emerald-500 font-bold h-[5vh] mb-[20px] mt-[20px] gap-8 flex-row items-center">
+          {count > 1 && (
+            <button onClick={() => decrement()} disabled={count === 1}>
               <FontAwesomeIcon icon={faArrowLeft} />
             </button>
-          ) : (
-            <></>
           )}
           <p>{count}</p>
           <button onClick={() => increment()}>

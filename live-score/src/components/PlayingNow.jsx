@@ -2,10 +2,11 @@ import React, { useEffect, useState } from "react";
 import { getLiveFootballMatches } from "../url/api";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCircle } from "@fortawesome/free-solid-svg-icons";
+import { getMatchId } from "../context/context";
 
 function PlayingNow() {
   const [fixtures, setFixtures] = useState([]);
-
+  const {getId} = getMatchId();
   useEffect(() => {
     const fetchData = async () => {
       const data = await getLiveFootballMatches();
@@ -13,10 +14,12 @@ function PlayingNow() {
     };
 
     fetchData();
-
+    getId(null);
     const intervalId = setInterval(fetchData, 30000);
 
     return () => clearInterval(intervalId);
+
+    
   }, []);
 
   return (
@@ -28,6 +31,9 @@ function PlayingNow() {
             <div
               key={idx}
               className="border-2 rounded-2xl border-emerald-500 w-[320px] h-[260px] flex flex-col items-center justify-between p-4 shadow-lg transition-transform duration-300 hover:-translate-y-5 -translate-x-5 cursor-pointer"
+              onClick={() => {
+                getId(match.id)
+              }}
             >
               <div className="text-xl font-bold">
                 {match.team1} vs {match.team2}
