@@ -26,22 +26,14 @@ function MatchList({ leagueName }) {
   }, [])
 
   useEffect(() => {
-    if (!leagueName) return;
-
-    const matchHistory = async () => {
-      try {
-        const data = await getTeamMatches(leagueName, count - 1);
-        if (data) {
-          setfixtures(data);
-        }
-        
-      } catch (err) {
-        console.error("Failed to fetch match history:", err);
-      }
+    const fetchData = async () => {
+      if (!leagueName) return;
+      const matches = await getTeamMatches(leagueName, count - 1); // keep -1 if API is 0-indexed
+      setfixtures(matches)
     };
-
-    matchHistory();
-  }, [leagueName, count, id]);
+    fetchData();
+  }, [leagueName, count]);
+  
 
   return (
     <div>

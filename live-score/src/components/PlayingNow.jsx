@@ -9,18 +9,14 @@ function PlayingNow() {
   const {getId} = getMatchId();
   useEffect(() => {
     const fetchData = async () => {
-      const data = await getLiveFootballMatches();
-      setFixtures(data);
+      const matches = await getLiveFootballMatches(); // not just 'data'
+      setFixtures(matches); // fixtures state expects match array
     };
-
     fetchData();
-    getId(null);
-    const intervalId = setInterval(fetchData, 30000);
-
-    return () => clearInterval(intervalId);
-
-    
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
   }, []);
+  
 
   return (
     <div>

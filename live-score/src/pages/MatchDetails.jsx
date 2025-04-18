@@ -14,25 +14,22 @@ function MatchDetails() {
     const fetchData = async () => {
       if (!id) return;
       const data = await getMatchDetails(id);
-      setMatchData(data.event);
+      setMatchData(data?.event);  // make sure to access `.event`
     };
     fetchData();
   }, [id]);
-
+  
   useEffect(() => {
     const fetchLogos = async () => {
       if (!matchData) return;
-      const homeData = await getTeamData(matchData.homeTeam.name);
-      const awayData = await getTeamData(matchData.awayTeam.name);
-      setHomeTeamLogo(
-        `https://api.sofascore.app/api/v1/team/${homeData}/image`
-      );
-      setAwayTeamLogo(
-        `https://api.sofascore.app/api/v1/team/${awayData}/image`
-      );
+      const homeId = await getTeamData(matchData.homeTeam.name);
+      const awayId = await getTeamData(matchData.awayTeam.name);
+      setHomeTeamLogo(`https://api.sofascore.app/api/v1/team/${homeId}/image`);
+      setAwayTeamLogo(`https://api.sofascore.app/api/v1/team/${awayId}/image`);
     };
     fetchLogos();
   }, [matchData]);
+  
 
   if (!matchData) return null;
 

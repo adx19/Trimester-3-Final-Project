@@ -236,7 +236,7 @@ export const getLiveFootballMatches = async () => {
         team2Logo: `${BASE_URL}/team/${event.awayTeam?.id}/image`,
         score: `${event.homeScore?.current ?? "-"} - ${event.awayScore?.current ?? "-"}`,
         date: new Date(event.startTimestamp * 1000).toLocaleDateString(),
-        venue: event.venue?.name || "Unknown", // ✅ get venue directly
+        venue: event.venue?.name || "Unknown",
         time: new Date(event.startTimestamp * 1000).toLocaleTimeString([], {
           hour: "2-digit",
           minute: "2-digit",
