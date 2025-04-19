@@ -1,5 +1,5 @@
 import axios, { all } from "axios";
-const BASE_URL = "http://api.sofascore.com/api/v1";
+const BASE_URL = "https://api.sofascore.com/api/v1";
 
 import { leagueSlugToId } from "../../public/league names/league-names";
 
@@ -13,7 +13,6 @@ export const getTeamData = async (teamName) => {
     const res = await axios.get(`${BASE_URL}/search/all/`, {
       params: { q: teamName },
       headers: { Accept: "application/json" },
-      Referer: "https://trimester-3-final-project-fb2f.vercel.app/",
     });
 
     const teams = res.data.results?.filter((item) => item.type === "team");
@@ -288,10 +287,7 @@ export const getTeamMatches = async (teamName, pageNo) => {
   try {
     const searchRes = await axios.get(`${BASE_URL}/search/all/`, {
       params: { q: teamName },
-      headers: {
-        Accept: "application/json",
-        Referer: "https://trimester-3-final-project-fb2f.vercel.app/",
-      },
+      headers: { Accept: "application/json" },
     });
     const results = searchRes.data.results;
 
