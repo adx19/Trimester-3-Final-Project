@@ -9,8 +9,8 @@ function PlayingNow() {
   const {getId} = getMatchId();
   useEffect(() => {
     const fetchData = async () => {
-      const matches = await getLiveFootballMatches(); // not just 'data'
-      setFixtures(matches); // fixtures state expects match array
+      const matches = await getLiveFootballMatches(); 
+      setFixtures(matches);
     };
     fetchData();
     const interval = setInterval(fetchData, 30000);
@@ -39,11 +39,11 @@ function PlayingNow() {
                 {match.date} || {match.time}
               </div>
 
-              <div className="text-sm text-red-600 font-semibold">
-                {match.minutesInMatch}
+              <div className="text-sm text-red-600 font-semibold -mb-2">
+                {match.timeInMatch}
               </div>
 
-              <div className="flex items-center justify-around w-full mt-2">
+              <div className="flex items-center justify-around w-full">
                 <img
                   src={match.team1Logo}
                   alt={match.team1}

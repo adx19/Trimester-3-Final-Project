@@ -1,5 +1,8 @@
 import axios, { all } from "axios";
 const BASE_URL = "https://api.sofascore.com/api/v1";
+
+import { leagueSlugToId } from "../../public/league names/league-names";
+
 export const getTeamData = async (teamName) => {
   if (!teamName) {
     console.warn("No team name provided");
@@ -19,9 +22,10 @@ export const getTeamData = async (teamName) => {
       return null;
     }
 
-    const matchedTeam = teams.find(
-      (t) => t.entity?.name?.toLowerCase() === teamName.toLowerCase()
-    ) || teams[0];
+    const matchedTeam =
+      teams.find(
+        (t) => t.entity?.name?.toLowerCase() === teamName.toLowerCase()
+      ) || teams[0];
 
     return matchedTeam.entity?.id || null;
   } catch (error) {
@@ -29,9 +33,6 @@ export const getTeamData = async (teamName) => {
     return null;
   }
 };
-
-
-import { leagueSlugToId } from "../../public/league names/league-names";
 
 export const getleaugeMatches = async (leagueSlug) => {
   const leagueId = leagueSlugToId[leagueSlug];
@@ -198,32 +199,52 @@ export const getLiveFootballMatches = async () => {
     const response = await axios.get(`${BASE_URL}/sport/football/events/live`);
     const liveEvents = response.data.events || [];
 
-    const filteredEvents = liveEvents.filter((event) => {
-      const tournamentId = event.tournament?.uniqueTournament?.id;
-      const tournamentName = event.tournament?.uniqueTournament?.slug;
+    if (!liveEvents.length) {
+      console.log("No live events found");
+      return [];
+    }
 
-      return Object.entries(leagueSlugToId).some(([slug, id]) => {
-        if (id) {
-          return tournamentId === id;
-        } else {
-          return tournamentName === slug;
-        }
-      });
+    const now = Math.floor(Date.now() / 1000);
+
+    const filteredMatches = liveEvents.filter((event) => {
+      const leagueSlug = event.tournament?.slug;
+      return leagueSlug && leagueSlugToId[leagueSlug];
     });
 
-    const enrichedMatches = filteredEvents.map((event) => {
-      const minute = event.time?.minute;
-      const injuryTime = event.time?.injuryTime;
+    const enrichedMatches = filteredMatches.map((event) => {
+      const startTimestamp = event.startTimestamp;
+      const currentPeriodStart = event.time?.currentPeriodStartTimestamp;
+      const injuryTime =
+        event.lastPeriod === "period1"
+          ? event.time?.injuryTime1 || 0
+          : event.lastPeriod === "period2"
+          ? event.time?.injuryTime2 || 0
+          : 0;
+
+      let minute = null;
       let timeInMatch = "";
 
-      if (["inprogress", "live"].includes(event.status?.type)) {
-        timeInMatch = injuryTime
-          ? `${minute}+${injuryTime}'`
-          : `${minute}'`;
-      } else if (event.status?.type === "halftime") {
+      const statusType = event.status?.type;
+
+      if (statusType === "halftime") {
         timeInMatch = "HT";
-      } else if (event.status?.type === "finished") {
+      } else if (statusType === "finished") {
         timeInMatch = "FT";
+      } else if (startTimestamp && now > startTimestamp) {
+        const minutesElapsed = Math.floor((now - startTimestamp) / 60) + 1;
+        minute = minutesElapsed;
+
+        const inInjuryTime =
+          (minutesElapsed > 45 && minutesElapsed <= 45 + injuryTime) ||
+          (minutesElapsed > 90 && minutesElapsed <= 90 + injuryTime);
+
+        if (inInjuryTime) {
+          const injuryBase = minutesElapsed > 90 ? 90 : 45;
+          const extra = minutesElapsed - injuryBase;
+          timeInMatch = `${injuryBase}+${extra}'`;
+        } else {
+          timeInMatch = `${minutesElapsed}'`;
+        }
       } else {
         timeInMatch = "LIVE";
       }
@@ -234,8 +255,10 @@ export const getLiveFootballMatches = async () => {
         team2: event.awayTeam?.name,
         team1Logo: `${BASE_URL}/team/${event.homeTeam?.id}/image`,
         team2Logo: `${BASE_URL}/team/${event.awayTeam?.id}/image`,
-        score: `${event.homeScore?.current ?? "-"} - ${event.awayScore?.current ?? "-"}`,
-        date: new Date(event.startTimestamp * 1000).toLocaleDateString(),
+        score: `${event.homeScore?.current ?? "-"} - ${
+          event.awayScore?.current ?? "-"
+        }`,
+        date: new Date(event.startTimestamp * 1000).toISOString().split("T")[0],
         venue: event.venue?.name || "Unknown",
         time: new Date(event.startTimestamp * 1000).toLocaleTimeString([], {
           hour: "2-digit",
@@ -255,9 +278,6 @@ export const getLiveFootballMatches = async () => {
   }
 };
 
-
-const corsProxy = "https://cors-anywhere.herokuapp.com/";
-
 export const getTeamMatches = async (teamName, pageNo) => {
   if (!teamName) {
     console.warn("No team name provided");
@@ -265,13 +285,10 @@ export const getTeamMatches = async (teamName, pageNo) => {
   }
 
   try {
-    const searchRes = await axios.get(
-      `${BASE_URL}/search/all/`,
-      {
-        params: { q: teamName },
-        headers: { Accept: "application/json" },
-      }
-    );
+    const searchRes = await axios.get(`${BASE_URL}/search/all/`, {
+      params: { q: teamName },
+      headers: { Accept: "application/json" },
+    });
     const results = searchRes.data.results;
 
     if (!results || results.length === 0) {
@@ -340,15 +357,130 @@ export const getTeamMatches = async (teamName, pageNo) => {
   }
 };
 
-
 export const getMatchDetails = async (id) => {
   try {
-    const response = await axios.get(
-      `https://api.sofascore.com/api/v1/event/${id}`
-    );
+    const response = await axios.get(`${BASE_URL}/event/${id}`);
     return response.data;
   } catch (error) {
     console.error("Error fetching match details:", error);
     throw error;
   }
 };
+
+export const getMatchStatistics = async (id) => {
+  try {
+    const responseIncidents = await axios.get(`${BASE_URL}/event/${id}/incidents`);
+    const incidentsData = responseIncidents?.data?.incidents || [];
+
+    const homeTeamGoalScorers = [];
+    const awayTeamGoalScorers = [];
+    const homeTeamRedCardReceivers = [];
+    const awayTeamRedCardReceivers = [];  
+    console.log(responseIncidents.data)
+
+    incidentsData.forEach((incident) => {
+      if (incident.incidentType === 'goal') {
+        const goalScorer = {
+          player: incident.player?.name || "Unknown",
+          minute: incident.time || "Unknown",
+        };
+
+        if (incident.isHome) {
+          homeTeamGoalScorers.push(goalScorer);
+        } else {
+          awayTeamGoalScorers.push(goalScorer);
+        }
+      }
+
+      if (incident.incidentClass === 'red') {
+        const redCardReceiver = {
+          player: incident.player?.name || "Unknown",
+          minute: incident.time || "Unknown",
+        };
+
+        if (incident.isHome) {
+          homeTeamRedCardReceivers.push(redCardReceiver);
+        } else {
+          awayTeamRedCardReceivers.push(redCardReceiver);
+        }
+      }
+    });
+
+    const responseStats = await axios.get(`${BASE_URL}/event/${id}/statistics`);
+    const statisticsData = responseStats?.data?.statistics || [];
+
+    let totalShots = { home: 0, away: 0 };
+    let shotsOnTarget = { home: 0, away: 0 };
+    let possession = { home: "0%", away: "0%" };
+    let saves = { home: 0, away: 0 };
+    let passes = { home: 0, away: 0 };
+    let accuratePasses = { home: 0, away: 0 }; 
+    let yellowCards = { home: 0, away: 0 };
+    let redCards = { home: 0, away: 0 };
+
+    statisticsData.forEach(group => {
+      group.groups.forEach(subgroup => {
+        subgroup.statisticsItems.forEach(stat => {
+          switch (stat.key) {
+            case 'ballPossession':
+              possession.home = stat.home || "0%";
+              possession.away = stat.away || "0%";
+              break;
+            case 'totalShotsOnGoal':
+              totalShots.home = stat.homeValue || 0;
+              totalShots.away = stat.awayValue || 0;
+              break;
+            case 'shotsOnGoal':
+              shotsOnTarget.home = stat.homeValue || 0;
+              shotsOnTarget.away = stat.awayValue || 0;
+              break;
+            case 'goalkeeperSaves':
+              saves.home = stat.homeValue || 0;
+              saves.away = stat.awayValue || 0;
+              break;
+            case 'passes':
+              passes.home = stat.homeValue || 0;
+              passes.away = stat.awayValue || 0;
+              break;
+            case 'accuratePasses': // capture accurate passes
+              accuratePasses.home = stat.homeValue || 0;
+              accuratePasses.away = stat.awayValue || 0;
+              break;
+            case 'yellowCards':
+              yellowCards.home = stat.homeValue || 0;
+              yellowCards.away = stat.awayValue || 0;
+              break;
+            case 'redCards': // ← New case
+              redCards.home = stat.homeValue || 0;
+              redCards.away = stat.awayValue || 0;
+              console.log(redCards)
+              break;
+            default:
+              break;
+            
+          }
+        });
+      });
+    });
+
+
+    return {
+      homeTeamGoalScorers,
+      awayTeamGoalScorers,
+      homeTeamRedCardReceivers,
+      awayTeamRedCardReceivers,
+      totalShots,
+      shotsOnTarget,
+      possession,
+      saves,
+      passes,
+      yellowCards,
+      accuratePasses,
+      redCards,
+    };
+  } catch (error) {
+    console.warn("Error in getMatchStatistics:", error);
+    return null;
+  }
+};
+
