@@ -25,21 +25,7 @@ function SearchBar() {
     }
   };
   
-  useEffect(() => {
-    async function testSearch() {
-      try {
-        const response = await fetch(
-          "https://api.sofascore.com/api/v1/search/all?query=Manchester%20City"
-        );
-        const data = await response.json();
-        console.log("Direct fetch test response:", data);
-      } catch (error) {
-        console.error("Fetch test failed:", error);
-      }
-    }
-  
-    testSearch();
-  }, []);
+
   return (
     <>
       <div className="flex flex-row  w-full border-b-4 border-emerald-500">
