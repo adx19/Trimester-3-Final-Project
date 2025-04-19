@@ -1,5 +1,5 @@
 import axios, { all } from "axios";
-const BASE_URL = "https://api.sofascore.com/api/v1";
+const BASE_URL = "http://api.sofascore.com/api/v1";
 
 import { leagueSlugToId } from "../../public/league names/league-names";
 
