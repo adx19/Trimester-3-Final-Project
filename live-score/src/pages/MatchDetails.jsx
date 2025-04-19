@@ -33,17 +33,14 @@ function MatchDetails() {
 
   useEffect(() => {
     let isMounted = true;
-
     const fetchData = async () => {
       const data = await getMatchStatistics(id);
       if (!data || !isMounted) return;
       setStatistics(data);
     };
-
     fetchData();
-
     return () => {
-      isMounted = false; // prevents setting state from stale async calls
+      isMounted = false;
     };
   }, [id]);
 
@@ -62,12 +59,18 @@ function MatchDetails() {
   ];
 
   return (
-    <div>
-      <div className="flex flex-row">
-        <div className="flex flex-col items-center font-bold text-emerald-600 w-full space-y-4 ">
+    <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/30">
+      <div className="bg-white p-8 rounded-2xl shadow-2xl w-[90vw] max-w-2xl max-h-[90vh] overflow-y-auto relative">
+        <button
+          className="absolute top-4 right-4 text-emerald-500 text-xl"
+          onClick={() => getId(null)}
+        >
+          <FontAwesomeIcon icon={faCircleXmark} />
+        </button>
+
+        <div className="flex flex-col items-center font-bold text-emerald-600 w-full space-y-4">
           <div>
-            {matchData.roundInfo.name ||
-              `MatchDay ${matchData.roundInfo.round}`}
+            {matchData.roundInfo.name || `MatchDay ${matchData.roundInfo.round}`}
           </div>
           <div className="text-2xl">
             {matchData.homeTeam.name} vs {matchData.awayTeam.name}
@@ -154,105 +157,97 @@ function MatchDetails() {
           </div>
         </div>
 
-        <div className=" top-0 right-0">
-          <button
-            className="rounded-xl text-red-500 cursor-pointer"
-            onClick={() => getId(null)}
-          >
-            <FontAwesomeIcon icon={faCircleXmark} />
-          </button>
-        </div>
-      </div>
-      <div className="mt-5">
-        <div className="flex items-center justify-center font-bold">
-          <div className="bg-emerald-500 text-white rounded-xl w-[100px] text-center">
-            STATS
+        <div className="mt-5">
+          <div className="flex items-center justify-center font-bold">
+            <div className="bg-emerald-500 text-white rounded-xl w-[100px] text-center">
+              STATS
+            </div>
           </div>
-        </div>
 
-        <div className="flex flex-row justify-evenly text-emerald-500 font-bold my-2">
-          <div className="flex flex-1 justify-center">
-            {statistics?.possession?.home}
+          <div className="flex flex-row justify-evenly text-emerald-500 font-bold my-2">
+            <div className="flex flex-1 justify-center">
+              {statistics?.possession?.home}
+            </div>
+            <div className="flex flex-1 justify-center">Possession</div>
+            <div className="flex flex-1 justify-center">
+              {statistics?.possession?.away}
+            </div>
           </div>
-          <div className="flex flex-1 justify-center">Possession</div>
-          <div className="flex flex-1 justify-center">
-            {statistics?.possession?.away}
-          </div>
-        </div>
 
-        <div className="flex flex-row justify-evenly text-emerald-500 font-bold my-2">
-          <div className="flex flex-1 justify-center">
-            {statistics?.totalShots?.home} ({statistics?.shotsOnTarget?.home})
+          <div className="flex flex-row justify-evenly text-emerald-500 font-bold my-2">
+            <div className="flex flex-1 justify-center">
+              {statistics?.totalShots?.home} ({statistics?.shotsOnTarget?.home})
+            </div>
+            <div className="flex flex-1 justify-center">Shots</div>
+            <div className="flex flex-1 justify-center">
+              {statistics?.totalShots?.away} ({statistics?.shotsOnTarget?.away})
+            </div>
           </div>
-          <div className="flex flex-1 justify-center">Shots</div>
-          <div className="flex flex-1 justify-center">
-            {statistics?.totalShots?.away} ({statistics?.shotsOnTarget?.away})
-          </div>
-        </div>
 
-        <div className="flex flex-row justify-evenly text-emerald-500 font-bold my-2">
-          <div className="flex flex-1 justify-center">
-            {statistics?.passes?.home}
+          <div className="flex flex-row justify-evenly text-emerald-500 font-bold my-2">
+            <div className="flex flex-1 justify-center">
+              {statistics?.passes?.home}
+            </div>
+            <div className="flex flex-1 justify-center">Passes</div>
+            <div className="flex flex-1 justify-center">
+              {statistics?.passes?.away}
+            </div>
           </div>
-          <div className="flex flex-1 justify-center">Passes</div>
-          <div className="flex flex-1 justify-center">
-            {statistics?.passes?.away}
-          </div>
-        </div>
 
-        <div className="flex flex-row justify-evenly text-emerald-500 font-bold my-2">
-          <div className="flex flex-1 justify-center">
-            {statistics?.accuratePasses?.home}
+          <div className="flex flex-row justify-evenly text-emerald-500 font-bold my-2">
+            <div className="flex flex-1 justify-center">
+              {statistics?.accuratePasses?.home}
+            </div>
+            <div className="flex flex-1 justify-center">Accurate Passes</div>
+            <div className="flex flex-1 justify-center">
+              {statistics?.accuratePasses?.away}
+            </div>
           </div>
-          <div className="flex flex-1 justify-center">Accurate Passes</div>
-          <div className="flex flex-1 justify-center">
-            {statistics?.accuratePasses?.away}
-          </div>
-        </div>
 
-        <div className="flex flex-row justify-evenly text-emerald-500 font-bold my-2">
-          <div className="flex flex-1 justify-center">
-            {`${(
-              (statistics?.accuratePasses?.home / statistics?.passes?.home) *
-              100
-            ).toFixed(0)}%`}
+          <div className="flex flex-row justify-evenly text-emerald-500 font-bold my-2">
+            <div className="flex flex-1 justify-center">
+              {`${(
+                (statistics?.accuratePasses?.home / statistics?.passes?.home) *
+                100
+              ).toFixed(0)}%`}
+            </div>
+            <div className="flex flex-1 justify-center">Pass Accuracy</div>
+            <div className="flex flex-1 justify-center">
+              {`${(
+                (statistics?.accuratePasses?.away / statistics?.passes?.away) *
+                100
+              ).toFixed(0)}%`}
+            </div>
           </div>
-          <div className="flex flex-1 justify-center">Pass Accuracy</div>
-          <div className="flex flex-1 justify-center">
-            {`${(
-              (statistics?.accuratePasses?.away / statistics?.passes?.away) *
-              100
-            ).toFixed(0)}%`}
-          </div>
-        </div>
 
-        <div className="flex flex-row justify-evenly text-emerald-500 font-bold my-2">
-          <div className="flex flex-1 justify-center">
-            {statistics?.saves?.home}
+          <div className="flex flex-row justify-evenly text-emerald-500 font-bold my-2">
+            <div className="flex flex-1 justify-center">
+              {statistics?.saves?.home}
+            </div>
+            <div className="flex flex-1 justify-center">Saves</div>
+            <div className="flex flex-1 justify-center">
+              {statistics?.saves?.away}
+            </div>
           </div>
-          <div className="flex flex-1 justify-center">Saves</div>
-          <div className="flex flex-1 justify-center">
-            {statistics?.saves?.away}
-          </div>
-        </div>
 
-        <div className="flex flex-row justify-evenly text-emerald-500 font-bold my-2">
-          <div className="flex flex-1 justify-center">
-            {statistics?.yellowCards?.home}
+          <div className="flex flex-row justify-evenly text-emerald-500 font-bold my-2">
+            <div className="flex flex-1 justify-center">
+              {statistics?.yellowCards?.home}
+            </div>
+            <div className="flex flex-1 justify-center">Yellow Card</div>
+            <div className="flex flex-1 justify-center">
+              {statistics?.yellowCards?.away}
+            </div>
           </div>
-          <div className="flex flex-1 justify-center">Yellow Card</div>
-          <div className="flex flex-1 justify-center">
-            {statistics?.yellowCards?.away}
-          </div>
-        </div>
 
-        <div className="flex flex-row justify-evenly text-emerald-500 font-bold my-2">
-          <div className="flex flex-1 justify-center">
-            {statistics?.redCards?.home}
-          </div>
-          <div className="flex flex-1 justify-center">Red Card</div>
-          <div className="flex flex-1 justify-center">
-            {statistics?.redCards?.away}
+          <div className="flex flex-row justify-evenly text-emerald-500 font-bold my-2">
+            <div className="flex flex-1 justify-center">
+              {statistics?.redCards?.home}
+            </div>
+            <div className="flex flex-1 justify-center">Red Card</div>
+            <div className="flex flex-1 justify-center">
+              {statistics?.redCards?.away}
+            </div>
           </div>
         </div>
       </div>

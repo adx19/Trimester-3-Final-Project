@@ -1,17 +1,6 @@
 import { createContext, useContext, useState } from "react";
 
-const StatusContext = createContext();
-export const useStatus = () => useContext(StatusContext);
-
-export const SportsProvider = ({ children }) => {
-  const [status, setStatus] = useState("live");
-  return (
-    <StatusContext.Provider value={{ status, setStatus }}>
-      {children}
-    </StatusContext.Provider>
-  );
-};
-
+// Search Context
 const SearchContext = createContext();
 export const useSearch = () => useContext(SearchContext);
 
@@ -25,11 +14,12 @@ export const SearchProvider = ({ children }) => {
   );
 };
 
+// MatchId Context
 const MatchIdContext = createContext();
 
 export const getMatchId = () => useContext(MatchIdContext);
 
-export const IdProvider = ({children}) => {
+export const IdProvider = ({ children }) => {
   const [id, setId] = useState(null);
 
   const getId = (newId) => {
@@ -41,4 +31,4 @@ export const IdProvider = ({children}) => {
       {children}
     </MatchIdContext.Provider>
   );
-}
+};

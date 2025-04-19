@@ -1,5 +1,6 @@
 export const leagueSlugToId = {
   "uefa-champions-league": 7,
+  "europa-league" : 679,
   "laliga": 8,
   "copa-del-rey": 329,
   "premier-league": 17,

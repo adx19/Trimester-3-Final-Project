@@ -22,7 +22,7 @@ function PlayingNow() {
     <div>
       <div className="flex flex-col flex-wrap items-center font-bold text-2xl text-emerald-500">
         LIVE:
-        <div className="font-bold flex flex-row justify-start flex-wrap gap-4 p-4 ml-[30px] webkit-scrollbar::none mt-[8px] border-b-[2px] w-full border-b-[2px] border-emerald-500 ">
+        <div className="font-bold flex flex-row justify-start flex-wrap gap-14 p-4 ml-[30px] webkit-scrollbar::none mt-[8px] border-b-[2px] w-full border-b-[2px] border-emerald-500 ">
           {fixtures.map((match, idx) => (
             <div
               key={idx}

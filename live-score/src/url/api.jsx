@@ -59,7 +59,9 @@ export const getleaugeMatches = async (leagueSlug) => {
       const leagueMatches = events.filter((event) => {
         const tournamentId = event.tournament?.uniqueTournament?.id;
         const isMatchEarlier = event.startTimestamp * 1000 < now;
-        return isMatchEarlier && tournamentId === leagueId;
+        const isMatchFinished = event.status?.type === "finished"; 
+
+        return isMatchEarlier && isMatchFinished && tournamentId === leagueId;
       });
 
       if (leagueMatches.length > 0) {
@@ -106,13 +108,13 @@ export const getleaugeMatches = async (leagueSlug) => {
       date.setDate(date.getDate() - 1);
     }
 
-    console.warn(`No recent league matches found for: ${leagueSlug}`);
     return [];
   } catch (error) {
     console.error("Failed to fetch league matches:", error.message);
     return [];
   }
 };
+
 
 export const getSeasonId = async (leagueSlug) => {
   const res = await axios.get(
@@ -206,14 +208,16 @@ export const getLiveFootballMatches = async () => {
 
     const now = Math.floor(Date.now() / 1000);
 
-    const filteredMatches = liveEvents.filter((event) => {
-      const leagueSlug = event.tournament?.slug;
-      return leagueSlug && leagueSlugToId[leagueSlug];
-    });
+    const allowedLeagueIds = Object.values(leagueSlugToId);
+
+    const filteredMatches = liveEvents.filter((event) =>
+      allowedLeagueIds.includes(event.tournament?.uniqueTournament?.id)
+    );
 
     const enrichedMatches = filteredMatches.map((event) => {
       const startTimestamp = event.startTimestamp;
       const currentPeriodStart = event.time?.currentPeriodStartTimestamp;
+      console.log(event.time)
       const injuryTime =
         event.lastPeriod === "period1"
           ? event.time?.injuryTime1 || 0
@@ -221,17 +225,16 @@ export const getLiveFootballMatches = async () => {
           ? event.time?.injuryTime2 || 0
           : 0;
 
+      const statusType = event.status?.type;
       let minute = null;
       let timeInMatch = "";
-
-      const statusType = event.status?.type;
 
       if (statusType === "halftime") {
         timeInMatch = "HT";
       } else if (statusType === "finished") {
         timeInMatch = "FT";
-      } else if (startTimestamp && now > startTimestamp) {
-        const minutesElapsed = Math.floor((now - startTimestamp) / 60) + 1;
+      } else if (currentPeriodStart && now > currentPeriodStart  && Math.floor((now - currentPeriodStart) / 60) < 45) {
+        const minutesElapsed = Math.floor((now - currentPeriodStart) / 60) + 1;
         minute = minutesElapsed;
 
         const inInjuryTime =
@@ -245,7 +248,24 @@ export const getLiveFootballMatches = async () => {
         } else {
           timeInMatch = `${minutesElapsed}'`;
         }
-      } else {
+      } 
+      else if (currentPeriodStart && now > currentPeriodStart  && Math.floor((now - currentPeriodStart) / 60) >  45) {
+        const minutesElapsed = 45 + Math.floor((now - currentPeriodStart) / 60) + 1;
+        minute = minutesElapsed;
+
+        const inInjuryTime =
+          (minutesElapsed > 45 && minutesElapsed <= 45 + injuryTime) ||
+          (minutesElapsed > 90 && minutesElapsed <= 90 + injuryTime);
+
+        if (inInjuryTime) {
+          const injuryBase = minutesElapsed > 90 ? 90 : 45;
+          const extra = minutesElapsed - injuryBase;
+          timeInMatch = `${injuryBase}+${extra}'`;
+        } else {
+          timeInMatch = `${minutesElapsed}'`;
+        }
+      }      
+      else {
         timeInMatch = "LIVE";
       }
 
@@ -259,11 +279,11 @@ export const getLiveFootballMatches = async () => {
           event.awayScore?.current ?? "-"
         }`,
         date: new Date(event.startTimestamp * 1000).toISOString().split("T")[0],
-        venue: event.venue?.name || "Unknown",
         time: new Date(event.startTimestamp * 1000).toLocaleTimeString([], {
           hour: "2-digit",
           minute: "2-digit",
         }),
+        venue: event.venue?.name || "Unknown",
         status: event.status?.description || "TBD",
         tournament: event.tournament?.name || "",
         minutesInMatch: minute ?? "—",
@@ -277,6 +297,8 @@ export const getLiveFootballMatches = async () => {
     return [];
   }
 };
+
+
 
 export const getTeamMatches = async (teamName, pageNo) => {
   if (!teamName) {
