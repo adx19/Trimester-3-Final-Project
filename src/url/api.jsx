@@ -1,5 +1,5 @@
 import axios, { all } from "axios";
-import { leagueSlugToId } from "../assets/league-names/league-names";
+import { leagueSlugToId } from "../assets/league names/league-names";
 const BASE_URL = "https://api.sofascore.com/api/v1";
 
 export const getTeamData = async (teamName) => {
