@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCircle } from "@fortawesome/free-solid-svg-icons";
 import { getMatchId } from "../../context/context";
+import { getleaugeMatches } from "../../url/api";
 
 function FootballScoreCard({ leagueName }) {
   const { getId } = getMatchId();
@@ -9,26 +10,14 @@ function FootballScoreCard({ leagueName }) {
 
   useEffect(() => {
     const fetchData = async () => {
-      try {
-        const response = await fetch(`/api/matches?type=leagueMatches&leagueSlug=${leagueName}`);
-        
-        if (!response.ok) {
-          throw new Error(`API Error: ${response.status} ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        console.log("Fetched League Matches:", data);
-        setFixtures(data);
-      } catch (error) {
-        console.error("Error fetching league matches:", error);
-      }
+      const response = await getleaugeMatches(leagueName);
+        console.log(response)
+        console.log(response.data)
+        setFixtures(response);
     };
 
     fetchData();
-    const intervalId = setInterval(fetchData, 30000); // Auto refresh every 30 seconds
 
-    // Cleanup on component unmount
-    return () => clearInterval(intervalId);
   }, [leagueName]);
 
   return (
@@ -36,8 +25,7 @@ function FootballScoreCard({ leagueName }) {
       <div className="flex flex-col flex-wrap items-center font-bold text-2xl text-emerald-500">
         {leagueName.toUpperCase()}:
         <div className="font-bold flex flex-row justify-start flex-wrap gap-15 p-4 ml-[30px] mt-[8px] border-b-[2px] w-full border-b-[2px] border-emerald-500">
-          {fixtures.length > 0 ? (
-            fixtures.map((match) => (
+          {fixtures.map((match) => (
               <div
                 key={match.id} // Use match.id instead of idx
                 className="border-2 rounded-2xl border-emerald-500 w-[320px] h-[260px] flex flex-col items-center justify-between p-4 shadow-lg transition-transform duration-300 hover:-translate-y-5 -translate-x-5 cursor-pointer"
@@ -85,10 +73,7 @@ function FootballScoreCard({ leagueName }) {
                   )}
                 </div>
               </div>
-            ))
-          ) : (
-            <div className="text-gray-500">No matches found.</div>
-          )}
+            ))}
         </div>
       </div>
     </div>

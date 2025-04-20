@@ -3,6 +3,7 @@ import { leagueSlugToId } from "../../public/league names/league-names";
 const BASE_URL = "https://api.sofascore.com/api/v1";
 
 
+
 export const getTeamData = async (teamName) => {
   if (!teamName) {
     console.warn("No team name provided");
@@ -34,10 +35,10 @@ export const getTeamData = async (teamName) => {
   }
 };
 
+
 export const getleaugeMatches = async (leagueSlug) => {
   const leagueId = leagueSlugToId[leagueSlug];
   const maxLookbackDays = 15;
-
   if (!leagueId) {
     console.warn(`No league ID found for slug: ${leagueSlug}`);
     return [];
