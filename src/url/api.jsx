@@ -1,8 +1,6 @@
 import axios, { all } from "axios";
-import { leagueSlugToId } from "../../public/league names/league-names";
+import { leagueSlugToId } from "../assets/league names/league-names";
 const BASE_URL = "https://api.sofascore.com/api/v1";
-
-
 
 export const getTeamData = async (teamName) => {
   if (!teamName) {
@@ -35,7 +33,6 @@ export const getTeamData = async (teamName) => {
   }
 };
 
-
 export const getleaugeMatches = async (leagueSlug) => {
   const leagueId = leagueSlugToId[leagueSlug];
   const maxLookbackDays = 15;
@@ -60,7 +57,7 @@ export const getleaugeMatches = async (leagueSlug) => {
       const leagueMatches = events.filter((event) => {
         const tournamentId = event.tournament?.uniqueTournament?.id;
         const isMatchEarlier = event.startTimestamp * 1000 < now;
-        const isMatchFinished = event.status?.type === "finished"; 
+        const isMatchFinished = event.status?.type === "finished";
 
         return isMatchEarlier && isMatchFinished && tournamentId === leagueId;
       });
@@ -115,7 +112,6 @@ export const getleaugeMatches = async (leagueSlug) => {
     return [];
   }
 };
-
 
 export const getSeasonId = async (leagueSlug) => {
   const res = await axios.get(
@@ -234,7 +230,9 @@ export const getLiveFootballMatches = async () => {
         minute = "—";
       } else if (currentPeriodStart && now > currentPeriodStart) {
         const minutesElapsed = Math.floor((now - currentPeriodStart) / 60) + 1;
-        const totalMinutes = isSecondHalf ? 45 + minutesElapsed : minutesElapsed;
+        const totalMinutes = isSecondHalf
+          ? 45 + minutesElapsed
+          : minutesElapsed;
         minute = totalMinutes;
 
         const inInjuryTime =
@@ -259,7 +257,9 @@ export const getLiveFootballMatches = async () => {
         team2: event.awayTeam?.name,
         team1Logo: `${BASE_URL}/team/${event.homeTeam?.id}/image`,
         team2Logo: `${BASE_URL}/team/${event.awayTeam?.id}/image`,
-        score: `${event.homeScore?.current ?? "-"} - ${event.awayScore?.current ?? "-"}`,
+        score: `${event.homeScore?.current ?? "-"} - ${
+          event.awayScore?.current ?? "-"
+        }`,
         date: new Date(event.startTimestamp * 1000).toISOString().split("T")[0],
         time: new Date(event.startTimestamp * 1000).toLocaleTimeString([], {
           hour: "2-digit",
@@ -313,7 +313,9 @@ export const getTeamMatches = async (teamName, pageNo) => {
         team2: event.awayTeam?.name,
         team1Logo: `${BASE_URL}/team/${event.homeTeam?.id}/image`,
         team2Logo: `${BASE_URL}/team/${event.awayTeam?.id}/image`,
-        score: `${event.homeScore?.current ?? "-"} - ${event.awayScore?.current ?? "-"}`,
+        score: `${event.homeScore?.current ?? "-"} - ${
+          event.awayScore?.current ?? "-"
+        }`,
         venue: event.venue?.name || "Unknown",
         date: new Date(event.startTimestamp * 1000).toISOString().split("T")[0],
         time: new Date(event.startTimestamp * 1000).toLocaleTimeString([], {
@@ -341,10 +343,11 @@ export const getMatchDetails = async (id) => {
   }
 };
 
-
 export const getMatchStatistics = async (id) => {
   try {
-    const responseIncidents = await axios.get(`${BASE_URL}/event/${id}/incidents`);
+    const responseIncidents = await axios.get(
+      `${BASE_URL}/event/${id}/incidents`
+    );
     const incidentsData = responseIncidents?.data?.incidents || [];
 
     const homeTeamGoalScorers = [];
@@ -353,7 +356,7 @@ export const getMatchStatistics = async (id) => {
     const awayTeamRedCardReceivers = [];
 
     incidentsData.forEach((incident) => {
-      if (incident.incidentType === 'goal') {
+      if (incident.incidentType === "goal") {
         const goalScorer = {
           player: incident.player?.name || "Unknown",
           minute: incident.time || "Unknown",
@@ -366,7 +369,7 @@ export const getMatchStatistics = async (id) => {
         }
       }
 
-      if (incident.incidentClass === 'red') {
+      if (incident.incidentClass === "red") {
         const redCardReceiver = {
           player: incident.player?.name || "Unknown",
           minute: incident.time || "Unknown",
@@ -394,43 +397,43 @@ export const getMatchStatistics = async (id) => {
       redCards: { home: 0, away: 0 },
     };
 
-    statisticsData.forEach(group => {
-      group.groups.forEach(subgroup => {
-        subgroup.statisticsItems.forEach(stat => {
+    statisticsData.forEach((group) => {
+      group.groups.forEach((subgroup) => {
+        subgroup.statisticsItems.forEach((stat) => {
           const key = stat.key;
           const homeVal = stat.homeValue || stat.home || 0;
           const awayVal = stat.awayValue || stat.away || 0;
 
           switch (key) {
-            case 'ballPossession':
+            case "ballPossession":
               stats.possession.home = stat.home || "0%";
               stats.possession.away = stat.away || "0%";
               break;
-            case 'totalShotsOnGoal':
+            case "totalShotsOnGoal":
               stats.totalShots.home = homeVal;
               stats.totalShots.away = awayVal;
               break;
-            case 'shotsOnGoal':
+            case "shotsOnGoal":
               stats.shotsOnTarget.home = homeVal;
               stats.shotsOnTarget.away = awayVal;
               break;
-            case 'goalkeeperSaves':
+            case "goalkeeperSaves":
               stats.saves.home = homeVal;
               stats.saves.away = awayVal;
               break;
-            case 'passes':
+            case "passes":
               stats.passes.home = homeVal;
               stats.passes.away = awayVal;
               break;
-            case 'accuratePasses':
+            case "accuratePasses":
               stats.accuratePasses.home = homeVal;
               stats.accuratePasses.away = awayVal;
               break;
-            case 'yellowCards':
+            case "yellowCards":
               stats.yellowCards.home = homeVal;
               stats.yellowCards.away = awayVal;
               break;
-            case 'redCards':
+            case "redCards":
               stats.redCards.home = homeVal;
               stats.redCards.away = awayVal;
               break;
@@ -453,4 +456,3 @@ export const getMatchStatistics = async (id) => {
     return null;
   }
 };
-

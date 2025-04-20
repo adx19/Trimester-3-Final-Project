@@ -2,7 +2,7 @@ import SearchBar from "../components/SearchBar";
 import FootballScoreCard from "../components/Scorecarddesign/FootballScoreCard";
 import MatchList from "../components/MatchList";
 import { useSearch } from "../context/context";
-import { leagueSlugToId } from "../../public/league names/league-names";
+import { leagueSlugToId } from "../assets/league names/league-names";
 
 function Previous() {
   const { search } = useSearch();
