@@ -1,7 +1,6 @@
 import axios, { all } from "axios";
 import { leagueSlugToId } from "../assets/league names/league-names";
 const BASE_URL = "https://api.sofascore.com/api/v1";
-const apiKey = "086ea156951ab9e219e6f2af346551d1";
 
 export const getTeamData = async (teamName) => {
   if (!teamName) {
@@ -52,8 +51,7 @@ export const getleaugeMatches = async (leagueSlug) => {
       date.setDate(date.getDate() - i); 
       const dateStr = date.toISOString().split("T")[0];
 
-      const scraperAPIUrl = `http://api.scraperapi.com?api_key=${apiKey}&url=${encodeURIComponent(`${BASE_URL}/sport/football/scheduled-events/${dateStr}`)}`;
-      const response = await axios.get(scraperAPIUrl);
+      const response = await axios.get(`${BASE_URL}/sport/football/scheduled-events/${dateStr}`);
       const events = response.data.events || []; 
 
       if (events.length > 0) {
@@ -125,7 +123,6 @@ export const getleaugeMatches = async (leagueSlug) => {
               }),
               status: event.status?.type || "TBD",
               tournament: event.tournament?.name || "",
-              minutesInMatch: minute,
               timeInMatch,
             };
           });
@@ -169,8 +166,8 @@ export const getUpcomingMatches = async (leagueSlug) => {
       date.setDate(date.getDate() + i); // Moving forward each day
       const dateStr = date.toISOString().split("T")[0];
 
-      const scraperAPIUrl = `http://api.scraperapi.com?api_key=${apiKey}&url=${encodeURIComponent(`${BASE_URL}/sport/football/scheduled-events/${dateStr}`)}`;
-      const response = await axios.get(scraperAPIUrl);
+      
+      const response = await axios.get(`${BASE_URL}/sport/football/scheduled-events/${dateStr}`);
       const events = response.data.events || [];
 
       if (events.length > 0) {
@@ -232,7 +229,6 @@ export const getUpcomingMatches = async (leagueSlug) => {
               team2: event.awayTeam?.name,
               team1Logo: `${BASE_URL}/team/${event.homeTeam?.id}/image`,
               team2Logo: `${BASE_URL}/team/${event.awayTeam?.id}/image`,
-              score: "-",
               venue: event.venue?.name || "Uknown",
               date: dateStr,
               time: new Date(startTimestamp * 1000).toLocaleTimeString([], {
@@ -262,11 +258,9 @@ export const getUpcomingMatches = async (leagueSlug) => {
 
 export const getLiveFootballMatches = async () => {
   try {
-    const scraperAPIUrl = `http://api.scraperapi.com?api_key=${apiKey}&url=${encodeURIComponent(
-      `${BASE_URL}/sport/football/events/live`
-    )}`;
 
-    const response = await axios.get(scraperAPIUrl);
+
+    const response = await axios.get(`${BASE_URL}/sport/football/events/live`);
     const liveEvents = response.data.events || [];
 
     console.log("Live Events: ", liveEvents); 
@@ -366,10 +360,7 @@ export const getTeamMatches = async (teamName, pageNo) => {
 
   try {
 
-    const searchScraperAPIUrl = `http://api.scraperapi.com?api_key=${apiKey}&url=${encodeURIComponent(
-      `${BASE_URL}/search/all/?q=${teamName}`
-    )}`;
-    const searchRes = await axios.get(searchScraperAPIUrl);
+    const searchRes = await axios.get(`${BASE_URL}/search/all/?q=${teamName}`);
     const results = searchRes.data.results;
 
     if (!results || results.length === 0) return [];
@@ -378,11 +369,8 @@ export const getTeamMatches = async (teamName, pageNo) => {
       .filter((r) => r.type === "team")
       .map((r) => r.entity)[0]?.id;
 
-    if (!teamId) return [];
-    const matchScraperAPIUrl = `http://api.scraperapi.com?api_key=${apiKey}&url=${encodeURIComponent(
-      `${BASE_URL}/team/${teamId}/events/last/${pageNo}`
-    )}`;
-    const matchRes = await axios.get(matchScraperAPIUrl);
+
+    const matchRes = await axios.get(`${BASE_URL}/team/${teamId}/events/last/${pageNo}`);
     const events = matchRes.data.events.reverse(); 
 
     if (!events || events.length === 0) return [];
@@ -463,11 +451,9 @@ export const getTeamMatches = async (teamName, pageNo) => {
 
 export const getMatchDetails = async (id) => {
   try {
-    const scraperAPIUrl = `http://api.scraperapi.com?api_key=${apiKey}&url=${encodeURIComponent(
-      `${BASE_URL}/event/${id}`
-    )}`;
 
-    const response = await axios.get(scraperAPIUrl);
+
+    const response = await axios.get(`${BASE_URL}/event/${id}`);
     return response.data;
   } catch (error) {
     console.error("Error in getMatchDetails:", error.message);
@@ -478,11 +464,7 @@ export const getMatchDetails = async (id) => {
 export const getMatchStatistics = async (id) => {
   try {
 
-    // Incidents
-    const incidentsUrl = `http://api.scraperapi.com?api_key=${apiKey}&url=${encodeURIComponent(
-      `${BASE_URL}/event/${id}/incidents`
-    )}`;
-    const incidentsRes = await axios.get(incidentsUrl);
+    const incidentsRes = await axios.get(`${BASE_URL}/event/${id}/incidents`);
     const incidentsData = incidentsRes?.data?.incidents || [];
 
     const homeTeamGoalScorers = [];
@@ -512,11 +494,9 @@ export const getMatchStatistics = async (id) => {
       }
     });
 
-    // Statistics
-    const statsUrl = `http://api.scraperapi.com?api_key=${apiKey}&url=${encodeURIComponent(
-      `${BASE_URL}/event/${id}/statistics`
-    )}`;
-    const statsRes = await axios.get(statsUrl);
+
+
+    const statsRes = await axios.get(`${BASE_URL}/event/${id}/statistics`);
     const statisticsData = statsRes?.data?.statistics || [];
 
     const stats = {
