@@ -1,6 +1,7 @@
 import axios, { all } from "axios";
 import { leagueSlugToId } from "../assets/league names/league-names";
 const BASE_URL = "https://api.sofascore.com/api/v1";
+const apiKey = "086ea156951ab9e219e6f2af346551d1"
 
 export const getTeamData = async (teamName) => {
   if (!teamName) {
@@ -33,8 +34,8 @@ export const getTeamData = async (teamName) => {
   }
 };
 export const getleaugeMatches = async (leagueSlug) => {
-  const leagueId = leagueSlugToId[leagueSlug];``
-  const maxLookbackDays = 7; // Fetch past 7 days of matches
+  const leagueId = leagueSlugToId[leagueSlug];
+  const maxLookbackDays = 7; // 7 days for past matches
 
   if (!leagueId) {
     console.warn(`No league ID found for slug: ${leagueSlug}`);
@@ -42,70 +43,41 @@ export const getleaugeMatches = async (leagueSlug) => {
   }
 
   try {
-     // Your ScraperAPI key
+    let date = new Date();
     const now = Date.now();
     const matches = [];
 
     for (let i = 0; i < maxLookbackDays; i++) {
-      const date = new Date();
-      date.setDate(date.getDate() - i); 
       const dateStr = date.toISOString().split("T")[0];
+      const scraperAPIUrl = `http://api.scraperapi.com?api_key=${apiKey}&url=${encodeURIComponent(`${BASE_URL}/sport/football/scheduled-events/${dateStr}`)}`;
+      console.log(`Fetching data for date: ${dateStr}`);
 
-      const response = await axios.get(`${BASE_URL}/sport/football/scheduled-events/${dateStr}`);
-      const events = response.data.events || []; 
+      const response = await axios.get(scraperAPIUrl);
+      const events = response.data.events || [];
 
-      if (events.length > 0) {
-        const leagueMatches = events.filter((event) => {
-          const tournamentId = event.tournament?.uniqueTournament?.id;
+      if (!events.length) {
+        console.log(`No events found for date: ${dateStr}`);
+      }
 
-          const isMatchEarlier = event.startTimestamp * 1000 < now;
-          const isMatchFinished = event.status?.type === "finished";
-          return isMatchEarlier && isMatchFinished && tournamentId === leagueId;
-        });
+      const leagueMatches = events.filter((event) => {
+        const tournamentId = event.tournament?.uniqueTournament?.id;
+        const isMatchEarlier = event.startTimestamp * 1000 < now;
+        const isMatchFinished = event.status?.type === "finished";
+        return isMatchEarlier && isMatchFinished && tournamentId === leagueId;
+      });
 
-        if (leagueMatches.length > 0) {
-          // Enrich match data
-          const enrichedMatches = leagueMatches.map((event) => {
-            const startTimestamp = event.startTimestamp;
-            const currentPeriodStart = event.time?.currentPeriodStartTimestamp;
-            const lastPeriod = event.lastPeriod;
+      console.log(`Found ${leagueMatches.length} finished matches for date: ${dateStr}`);
 
-            let minute = null;
-            let timeInMatch = "";
-
-            const statusType = event.status?.type;
-            const isSecondHalf = lastPeriod === "period2";
-            const injuryTime = isSecondHalf
-              ? event.time?.injuryTime2 || 0
-              : event.time?.injuryTime1 || 0;
-
-            if (statusType === "halftime") {
-              timeInMatch = "HT";
-              minute = "—";
-            } else if (statusType === "finished") {
-              timeInMatch = "FT";
-              minute = "—";
-            } else if (currentPeriodStart) {
-              const minutesElapsed = Math.floor((now - currentPeriodStart) / 60) + 1;
-              const totalMinutes = isSecondHalf
-                ? 45 + minutesElapsed
-                : minutesElapsed;
-              minute = totalMinutes;
-
-              const inInjuryTime =
-                (totalMinutes > 45 && totalMinutes <= 45 + injuryTime) ||
-                (totalMinutes > 90 && totalMinutes <= 90 + injuryTime);
-
-              if (inInjuryTime) {
-                const injuryBase = totalMinutes > 90 ? 90 : 45;
-                const extra = totalMinutes - injuryBase;
-                timeInMatch = `${injuryBase}+${extra}'`;
-              } else {
-                timeInMatch = `${totalMinutes}'`;
-              }
-            } else {
-              timeInMatch = "TBD";
-              minute = "—";
+      if (leagueMatches.length > 0) {
+        const enrichedMatches = await Promise.all(
+          leagueMatches.map(async (event) => {
+            let venueName = "TBD";
+            try {
+              const venueUrl = `http://api.scraperapi.com?api_key=${apiKey}&url=${encodeURIComponent(`${BASE_URL}/event/${event.id}`)}`;
+              const venueRes = await axios.get(venueUrl);
+              venueName = venueRes?.data?.event?.venue?.name || "TBD";
+            } catch (e) {
+              console.warn(`No venue found for event ${event.id}`);
             }
 
             return {
@@ -115,26 +87,27 @@ export const getleaugeMatches = async (leagueSlug) => {
               team1Logo: `${BASE_URL}/team/${event.homeTeam?.id}/image`,
               team2Logo: `${BASE_URL}/team/${event.awayTeam?.id}/image`,
               score: `${event.homeScore?.current ?? "-"} - ${event.awayScore?.current ?? "-"}`,
-              venue: event.venue?.name || "Unknown",
+              venue: venueName,
               date: dateStr,
-              time: new Date(startTimestamp * 1000).toLocaleTimeString([], {
+              time: new Date(event.startTimestamp * 1000).toLocaleTimeString([], {
                 hour: "2-digit",
                 minute: "2-digit",
               }),
               status: event.status?.type || "TBD",
-              tournament: event.tournament?.name || "",
-              timeInMatch,
             };
-          });
+          })
+        );
 
-          return enrichedMatches;
-        }
+        matches.push(...enrichedMatches);
       }
+
+      date.setDate(date.getDate() - 1); // Go back in time to fetch past matches
     }
 
-    return [];
+    console.log(`Total league matches found: ${matches.length}`);
+    return matches;
   } catch (error) {
-    console.error("Error in getLeagueMatches:", error.message);
+    console.error("Failed to fetch league matches:", error.message);
     return [];
   }
 };
@@ -150,7 +123,7 @@ export const getSeasonId = async (leagueSlug) => {
 };
 export const getUpcomingMatches = async (leagueSlug) => {
   const leagueId = leagueSlugToId[leagueSlug];
-  const maxForwardDays = 7; // Fetch next 7 days of matches
+  const maxForwardDays = 7; 
 
   if (!leagueId) {
     console.warn(`No league ID found for slug: ${leagueSlug}`);
@@ -158,101 +131,77 @@ export const getUpcomingMatches = async (leagueSlug) => {
   }
 
   try {
+    let date = new Date();
     const now = Date.now();
     const matches = [];
 
     for (let i = 0; i < maxForwardDays; i++) {
-      const date = new Date();
-      date.setDate(date.getDate() + i); // Moving forward each day
       const dateStr = date.toISOString().split("T")[0];
+      const scraperAPIUrl = `http://api.scraperapi.com?api_key=${apiKey}&url=${encodeURIComponent(`${BASE_URL}/sport/football/scheduled-events/${dateStr}`)}`;
+      console.log(`Fetching data for date: ${dateStr}`);
 
-      
-      const response = await axios.get(`${BASE_URL}/sport/football/scheduled-events/${dateStr}`);
+      const response = await axios.get(scraperAPIUrl);
       const events = response.data.events || [];
 
-      if (events.length > 0) {
-        // Filter upcoming matches
-        const upcomingMatches = events.filter((event) => {
-          const tournamentId = event.tournament?.uniqueTournament?.id;
-          const isMatchLater = event.startTimestamp * 1000 > now;
-          return isMatchLater && tournamentId === leagueId;
-        });
+      if (!events.length) {
+        console.log(`No events found for date: ${dateStr}`);
+      }
 
-        if (upcomingMatches.length > 0) {
-          // Enrich match data
-          const enrichedMatches = upcomingMatches.map((event) => {
-            const startTimestamp = event.startTimestamp;
-            const currentPeriodStart = event.time?.currentPeriodStartTimestamp;
-            const lastPeriod = event.lastPeriod;
+      const upcomingMatches = events.filter((event) => {
+        const tournamentId = event.tournament?.uniqueTournament?.id;
+        const isMatchLater = event.startTimestamp * 1000 > now;
+        return isMatchLater && tournamentId === leagueId;
+      });
 
-            let minute = null;
-            let timeInMatch = "";
+      console.log(`Found ${upcomingMatches.length} upcoming matches for date: ${dateStr}`);
 
-            const statusType = event.status?.type;
-            const isSecondHalf = lastPeriod === "period2";
-            const injuryTime = isSecondHalf
-              ? event.time?.injuryTime2 || 0
-              : event.time?.injuryTime1 || 0;
-
-            if (statusType === "halftime") {
-              timeInMatch = "HT";
-              minute = "—";
-            } else if (statusType === "finished") {
-              timeInMatch = "FT";
-              minute = "—";
-            } else if (currentPeriodStart) {
-              const minutesElapsed = Math.floor((now - currentPeriodStart) / 60) + 1;
-              const totalMinutes = isSecondHalf
-                ? 45 + minutesElapsed
-                : minutesElapsed;
-              minute = totalMinutes;
-
-              const inInjuryTime =
-                (totalMinutes > 45 && totalMinutes <= 45 + injuryTime) ||
-                (totalMinutes > 90 && totalMinutes <= 90 + injuryTime);
-
-              if (inInjuryTime) {
-                const injuryBase = totalMinutes > 90 ? 90 : 45;
-                const extra = totalMinutes - injuryBase;
-                timeInMatch = `${injuryBase}+${extra}'`;
-              } else {
-                timeInMatch = `${totalMinutes}'`;
-              }
-            } else {
-              timeInMatch = "TBD";
-              minute = "—";
+      if (upcomingMatches.length > 0) {
+        const enrichedMatches = await Promise.all(
+          upcomingMatches.map(async (event) => {
+            let venueName = "TBD";
+            try {
+              const venueUrl = `http://api.scraperapi.com?api_key=${apiKey}&url=${encodeURIComponent(`${BASE_URL}/event/${event.id}`)}`;
+              const venueRes = await axios.get(venueUrl);
+              venueName = venueRes?.data?.event?.venue?.name || "TBD";
+            } catch (e) {
+              console.warn(`No venue found for event ${event.id}`);
             }
 
             return {
+             
               id: event.id,
               team1: event.homeTeam?.name,
               team2: event.awayTeam?.name,
-              team1Logo: `${BASE_URL}/team/${event.homeTeam?.id}/image`,
-              team2Logo: `${BASE_URL}/team/${event.awayTeam?.id}/image`,
-              venue: event.venue?.name || "Uknown",
+              team1Logo: `http://api.scraperapi.com?api_key=${apiKey}&url=${encodeURIComponent(` ${BASE_URL}/team/${event.homeTeam?.id}/image`)}`,
+              team2Logo: `http://api.scraperapi.com?api_key=${apiKey}&url=${encodeURIComponent(` ${BASE_URL}/team/${event.awayTeam?.id}/image`)}`,
+              score: "-",
+              venue: venueName,
               date: dateStr,
-              time: new Date(startTimestamp * 1000).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              }),
+              time: event.startTimestamp
+                ? new Date(event.startTimestamp * 1000).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : "TBD",
               status: event.status?.type || "TBD",
-              tournament: event.tournament?.name || "",
-              minutesInMatch: minute,
-              timeInMatch,
             };
-          });
+          })
+        );
 
-          return enrichedMatches;
-        }
+        matches.push(...enrichedMatches);
       }
+
+      date.setDate(date.getDate() + 1);
     }
 
-    return [];
+    console.log(`Total upcoming matches found: ${matches.length}`);
+    return matches;
   } catch (error) {
-    console.error("Error in getUpcomingMatches:", error.message);
+    console.error("Failed to fetch upcoming matches:", error.message);
     return [];
   }
 };
+
 
 
 
@@ -360,7 +309,9 @@ export const getTeamMatches = async (teamName, pageNo) => {
 
   try {
 
-    const searchRes = await axios.get(`${BASE_URL}/search/all/?q=${teamName}`);
+    // Step 1: Search for the team and get the team ID
+    const searchScraperAPIUrl = `http://api.scraperapi.com?api_key=${apiKey}&url=${encodeURIComponent(`${BASE_URL}/search/all/?q=${teamName}`)}`;
+    const searchRes = await axios.get(searchScraperAPIUrl);
     const results = searchRes.data.results;
 
     if (!results || results.length === 0) return [];
@@ -369,13 +320,17 @@ export const getTeamMatches = async (teamName, pageNo) => {
       .filter((r) => r.type === "team")
       .map((r) => r.entity)[0]?.id;
 
+    if (!teamId) return [];
 
-    const matchRes = await axios.get(`${BASE_URL}/team/${teamId}/events/last/${pageNo}`);
-    const events = matchRes.data.events.reverse(); 
+    // Step 2: Fetch the team's last matches
+    const matchScraperAPIUrl = `http://api.scraperapi.com?api_key=${apiKey}&url=${encodeURIComponent(`${BASE_URL}/team/${teamId}/events/last/${pageNo}`)}`;
+    const matchRes = await axios.get(matchScraperAPIUrl);
+    const events = matchRes.data.events.reverse(); // Most recent first
 
     if (!events || events.length === 0) return [];
 
-    const enrichedMatches = events.map((event) => {
+    // Step 3: Enrich the matches and apply the same structure as getLiveFootballMatches
+    const enrichedMatches = await Promise.all(events.map(async (event) => {
       const startTimestamp = event.startTimestamp;
       const currentPeriodStart = event.time?.currentPeriodStartTimestamp;
       const lastPeriod = event.lastPeriod;
@@ -399,9 +354,7 @@ export const getTeamMatches = async (teamName, pageNo) => {
       } else if (currentPeriodStart) {
         const now = Math.floor(Date.now() / 1000);
         const minutesElapsed = Math.floor((now - currentPeriodStart) / 60) + 1;
-        const totalMinutes = isSecondHalf
-          ? 45 + minutesElapsed
-          : minutesElapsed;
+        const totalMinutes = isSecondHalf ? 45 + minutesElapsed : minutesElapsed;
         minute = totalMinutes;
 
         const inInjuryTime =
@@ -420,17 +373,30 @@ export const getTeamMatches = async (teamName, pageNo) => {
         minute = "—";
       }
 
+      // Step 4: Fetch team logos using Scraper API
+      const team1LogoScraperAPIUrl = `http://api.scraperapi.com?api_key=${apiKey}&url=${encodeURIComponent(`${BASE_URL}/team/${event.homeTeam?.id}/image`)}`;
+      const team2LogoScraperAPIUrl = `http://api.scraperapi.com?api_key=${apiKey}&url=${encodeURIComponent(`${BASE_URL}/team/${event.awayTeam?.id}/image`)}`;
+
+      // Fetch logos using Scraper API
+      const [team1LogoRes, team2LogoRes] = await Promise.all([
+        axios.get(team1LogoScraperAPIUrl),
+        axios.get(team2LogoScraperAPIUrl)
+      ]);
+
+      const team1Logo = team1LogoRes.data?.url || "";
+      const team2Logo = team2LogoRes.data?.url || "";
+
       return {
         id: event.id,
         team1: event.homeTeam?.name,
         team2: event.awayTeam?.name,
-        team1Logo: `${BASE_URL}/team/${event.homeTeam?.id}/image`,
-        team2Logo: `${BASE_URL}/team/${event.awayTeam?.id}/image`,
-        score: `${event.homeScore?.current ?? "-"} - ${
-          event.awayScore?.current ?? "-"
-        }`,
+        team1Logo,
+        team2Logo,
+        score: `${event.homeScore?.current ?? "-"} - ${event.awayScore?.current ?? "-"}`,
         venue: event.venue?.name || "Unknown",
-        date: new Date(event.startTimestamp * 1000).toISOString().split("T")[0],
+        date: new Date(event.startTimestamp * 1000)
+          .toISOString()
+          .split("T")[0],
         time: new Date(event.startTimestamp * 1000).toLocaleTimeString([], {
           hour: "2-digit",
           minute: "2-digit",
@@ -440,7 +406,7 @@ export const getTeamMatches = async (teamName, pageNo) => {
         minutesInMatch: minute,
         timeInMatch,
       };
-    });
+    }));
 
     return enrichedMatches;
   } catch (error) {
@@ -449,11 +415,12 @@ export const getTeamMatches = async (teamName, pageNo) => {
   }
 };
 
+
 export const getMatchDetails = async (id) => {
   try {
+    const scraperAPIUrl = `http://api.scraperapi.com?api_key=${apiKey}&url=${encodeURIComponent(`${BASE_URL}/event/${id}`)}`;
 
-
-    const response = await axios.get(`${BASE_URL}/event/${id}`);
+    const response = await axios.get(scraperAPIUrl);
     return response.data;
   } catch (error) {
     console.error("Error in getMatchDetails:", error.message);
@@ -463,8 +430,10 @@ export const getMatchDetails = async (id) => {
 
 export const getMatchStatistics = async (id) => {
   try {
-
-    const incidentsRes = await axios.get(`${BASE_URL}/event/${id}/incidents`);
+    
+    // Incidents
+    const incidentsUrl = `http://api.scraperapi.com?api_key=${apiKey}&url=${encodeURIComponent(`${BASE_URL}/event/${id}/incidents`)}`;
+    const incidentsRes = await axios.get(incidentsUrl);
     const incidentsData = incidentsRes?.data?.incidents || [];
 
     const homeTeamGoalScorers = [];
@@ -478,9 +447,7 @@ export const getMatchStatistics = async (id) => {
           player: incident.player?.name || "Unknown",
           minute: incident.time || "Unknown",
         };
-        incident.isHome
-          ? homeTeamGoalScorers.push(goal)
-          : awayTeamGoalScorers.push(goal);
+        incident.isHome ? homeTeamGoalScorers.push(goal) : awayTeamGoalScorers.push(goal);
       }
 
       if (incident.incidentClass === "red") {
@@ -488,15 +455,13 @@ export const getMatchStatistics = async (id) => {
           player: incident.player?.name || "Unknown",
           minute: incident.time || "Unknown",
         };
-        incident.isHome
-          ? homeTeamRedCardReceivers.push(red)
-          : awayTeamRedCardReceivers.push(red);
+        incident.isHome ? homeTeamRedCardReceivers.push(red) : awayTeamRedCardReceivers.push(red);
       }
     });
 
-
-
-    const statsRes = await axios.get(`${BASE_URL}/event/${id}/statistics`);
+    // Statistics
+    const statsUrl = `http://api.scraperapi.com?api_key=${apiKey}&url=${encodeURIComponent(`${BASE_URL}/event/${id}/statistics`)}`;
+    const statsRes = await axios.get(statsUrl);
     const statisticsData = statsRes?.data?.statistics || [];
 
     const stats = {
