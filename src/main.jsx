@@ -5,13 +5,11 @@ import { SearchProvider, IdProvider } from "./context/context";
 import { BrowserRouter } from "react-router-dom";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
-  <React.StrictMode>
-    <BrowserRouter>
+  <BrowserRouter>
     <SearchProvider>
       <IdProvider>
         <App />
       </IdProvider>
     </SearchProvider>
-    </BrowserRouter>
-  </React.StrictMode>
+  </BrowserRouter>
 );

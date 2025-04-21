@@ -10,6 +10,7 @@ function PlayingNow() {
   useEffect(() => {
     const fetchData = async () => {
       const matches = await getLiveFootballMatches(); 
+      console.log(matches);
       setFixtures(matches);
     };
     fetchData();
