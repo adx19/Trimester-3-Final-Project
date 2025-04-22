@@ -2,6 +2,7 @@ import axios, { all } from "axios";
 import { leagueSlugToId } from "../assets/league names/league-names";
 const BASE_URL = "https://api.sofascore.com/api/v1";
 
+
 export const getTeamData = async (teamName) => {
   if (!teamName) {
     console.warn("No team name provided");
@@ -33,7 +34,7 @@ export const getTeamData = async (teamName) => {
   }
 };
 export const getleaugeMatches = async (leagueSlug) => {
-  const leagueId = leagueSlugToId[leagueSlug];``
+  const leagueId = leagueSlugToId[leagueSlug];
   const maxLookbackDays = 7;
 
   if (!leagueId) {
@@ -47,96 +48,51 @@ export const getleaugeMatches = async (leagueSlug) => {
 
     for (let i = 0; i < maxLookbackDays; i++) {
       const date = new Date();
-      date.setDate(date.getDate() - i); 
+      date.setDate(date.getDate() - i);
       const dateStr = date.toISOString().split("T")[0];
 
-      const response = await axios.get(`${BASE_URL}/sport/football/scheduled-events/${dateStr}`);
-      const events = response.data.events || []; 
+      const scraperAPIUrl = `${BASE_URL}/sport/football/scheduled-events/${dateStr}`;
+      const response = await axios.get(scraperAPIUrl);
+      const events = response.data.events || [];
 
-      if (events.length > 0) {
-        const leagueMatches = events.filter((event) => {
-          const tournamentId = event.tournament?.uniqueTournament?.id;
+      const leagueMatches = events.filter((event) => {
+        const tournamentId = event.tournament?.uniqueTournament?.id;
+        const isMatchEarlier = event.startTimestamp * 1000 < now;
+        const isMatchFinished = event.status?.type === "finished";
+        return isMatchEarlier && isMatchFinished && tournamentId === leagueId;
+      });
 
-          const isMatchEarlier = event.startTimestamp * 1000 < now;
-          const isMatchFinished = event.status?.type === "finished";
-          return isMatchEarlier && isMatchFinished && tournamentId === leagueId;
-        });
+      const enrichedMatches = leagueMatches.map((event) => {
+        const startTimestamp = event.startTimestamp;
+        
+        return {
+          id: event.id,
+          team1: event.homeTeam?.name,
+          team2: event.awayTeam?.name,
+          team1Logo: `${BASE_URL}/team/${event.homeTeam?.id}/image`,
+          team2Logo: `${BASE_URL}/team/${event.awayTeam?.id}/image`,
+          score: `${event.homeScore?.current ?? "-"} - ${event.awayScore?.current ?? "-"}`,
+          venue: event.venue?.name || "TBD",
+          date: dateStr,
+          time: new Date(startTimestamp * 1000).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          status: event.status?.type || "TBD",
+          tournament: event.tournament?.name || "",
+        };
+      });
 
-        if (leagueMatches.length > 0) {
-          // Enrich match data
-          const enrichedMatches = leagueMatches.map((event) => {
-            const startTimestamp = event.startTimestamp;
-            const currentPeriodStart = event.time?.currentPeriodStartTimestamp;
-            const lastPeriod = event.lastPeriod;
-
-            let minute = null;
-            let timeInMatch = "";
-
-            const statusType = event.status?.type;
-            const isSecondHalf = lastPeriod === "period2";
-            const injuryTime = isSecondHalf
-              ? event.time?.injuryTime2 || 0
-              : event.time?.injuryTime1 || 0;
-
-            if (statusType === "halftime") {
-              timeInMatch = "HT";
-              minute = "—";
-            } else if (statusType === "finished") {
-              timeInMatch = "FT";
-              minute = "—";
-            } else if (currentPeriodStart) {
-              const minutesElapsed = Math.floor((now - currentPeriodStart) / 60) + 1;
-              const totalMinutes = isSecondHalf
-                ? 45 + minutesElapsed
-                : minutesElapsed;
-              minute = totalMinutes;
-
-              const inInjuryTime =
-                (totalMinutes > 45 && totalMinutes <= 45 + injuryTime) ||
-                (totalMinutes > 90 && totalMinutes <= 90 + injuryTime);
-
-              if (inInjuryTime) {
-                const injuryBase = totalMinutes > 90 ? 90 : 45;
-                const extra = totalMinutes - injuryBase;
-                timeInMatch = `${injuryBase}+${extra}'`;
-              } else {
-                timeInMatch = `${totalMinutes}'`;
-              }
-            } else {
-              timeInMatch = "TBD";
-              minute = "—";
-            }
-
-            return {
-              id: event.id,
-              team1: event.homeTeam?.name,
-              team2: event.awayTeam?.name,
-              team1Logo: `${BASE_URL}/team/${event.homeTeam?.id}/image`,
-              team2Logo: `${BASE_URL}/team/${event.awayTeam?.id}/image`,
-              score: `${event.homeScore?.current ?? "-"} - ${event.awayScore?.current ?? "-"}`,
-              venue: event.venue?.name || "Unknown",
-              date: dateStr,
-              time: new Date(startTimestamp * 1000).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              }),
-              status: event.status?.type || "TBD",
-              tournament: event.tournament?.name || "",
-              timeInMatch,
-            };
-          });
-
-          return enrichedMatches;
-        }
-      }
+      return enrichedMatches;
     }
 
-    return [];
+    return matches;
   } catch (error) {
     console.error("Error in getLeagueMatches:", error.message);
     return [];
   }
 };
+
 
 
 
@@ -149,7 +105,7 @@ export const getSeasonId = async (leagueSlug) => {
 };
 export const getUpcomingMatches = async (leagueSlug) => {
   const leagueId = leagueSlugToId[leagueSlug];
-  const maxForwardDays = 7; // Fetch next 7 days of matches
+  const maxForwardDays = 7; 
 
   if (!leagueId) {
     console.warn(`No league ID found for slug: ${leagueSlug}`);
@@ -158,19 +114,18 @@ export const getUpcomingMatches = async (leagueSlug) => {
 
   try {
     const now = Date.now();
-    const matches = [];
 
     for (let i = 0; i < maxForwardDays; i++) {
       const date = new Date();
-      date.setDate(date.getDate() + i); // Moving forward each day
+      date.setDate(date.getDate() + i); 
       const dateStr = date.toISOString().split("T")[0];
 
-      
-      const response = await axios.get(`${BASE_URL}/sport/football/scheduled-events/${dateStr}`);
+      const scraperAPIUrl = `${BASE_URL}/sport/football/scheduled-events/${dateStr}`;
+      const response = await axios.get(scraperAPIUrl);
       const events = response.data.events || [];
 
       if (events.length > 0) {
-        // Filter upcoming matches
+        
         const upcomingMatches = events.filter((event) => {
           const tournamentId = event.tournament?.uniqueTournament?.id;
           const isMatchLater = event.startTimestamp * 1000 > now;
@@ -178,49 +133,11 @@ export const getUpcomingMatches = async (leagueSlug) => {
         });
 
         if (upcomingMatches.length > 0) {
-          // Enrich match data
+        
           const enrichedMatches = upcomingMatches.map((event) => {
             const startTimestamp = event.startTimestamp;
-            const currentPeriodStart = event.time?.currentPeriodStartTimestamp;
-            const lastPeriod = event.lastPeriod;
 
-            let minute = null;
-            let timeInMatch = "";
-
-            const statusType = event.status?.type;
-            const isSecondHalf = lastPeriod === "period2";
-            const injuryTime = isSecondHalf
-              ? event.time?.injuryTime2 || 0
-              : event.time?.injuryTime1 || 0;
-
-            if (statusType === "halftime") {
-              timeInMatch = "HT";
-              minute = "—";
-            } else if (statusType === "finished") {
-              timeInMatch = "FT";
-              minute = "—";
-            } else if (currentPeriodStart) {
-              const minutesElapsed = Math.floor((now - currentPeriodStart) / 60) + 1;
-              const totalMinutes = isSecondHalf
-                ? 45 + minutesElapsed
-                : minutesElapsed;
-              minute = totalMinutes;
-
-              const inInjuryTime =
-                (totalMinutes > 45 && totalMinutes <= 45 + injuryTime) ||
-                (totalMinutes > 90 && totalMinutes <= 90 + injuryTime);
-
-              if (inInjuryTime) {
-                const injuryBase = totalMinutes > 90 ? 90 : 45;
-                const extra = totalMinutes - injuryBase;
-                timeInMatch = `${injuryBase}+${extra}'`;
-              } else {
-                timeInMatch = `${totalMinutes}'`;
-              }
-            } else {
-              timeInMatch = "TBD";
-              minute = "—";
-            }
+           
 
             return {
               id: event.id,
@@ -228,16 +145,15 @@ export const getUpcomingMatches = async (leagueSlug) => {
               team2: event.awayTeam?.name,
               team1Logo: `${BASE_URL}/team/${event.homeTeam?.id}/image`,
               team2Logo: `${BASE_URL}/team/${event.awayTeam?.id}/image`,
-              venue: event.venue?.name || "Uknown",
+              score: "-",
+              venue: event.venue?.name || "TBD",
               date: dateStr,
               time: new Date(startTimestamp * 1000).toLocaleTimeString([], {
                 hour: "2-digit",
                 minute: "2-digit",
               }),
-              status: event.status?.type || "TBD",
+              status: event.status?.type || "Unknown",
               tournament: event.tournament?.name || "",
-              minutesInMatch: minute,
-              timeInMatch,
             };
           });
 
@@ -255,6 +171,7 @@ export const getUpcomingMatches = async (leagueSlug) => {
 
 
 
+
 export const getLiveFootballMatches = async () => {
   try {
 
@@ -262,24 +179,15 @@ export const getLiveFootballMatches = async () => {
     const response = await axios.get(`${BASE_URL}/sport/football/events/live`);
     const liveEvents = response.data.events || [];
 
-    console.log("Live Events: ", liveEvents); 
-
     if (!liveEvents.length) return [];
 
     const now = Math.floor(Date.now() / 1000);
     const allowedLeagueIds = Object.values(leagueSlugToId);
 
     const filteredMatches = liveEvents.filter((event) => {
-      console.log(
-        "Event Tournament ID:",
-        event.tournament?.uniqueTournament?.id
-      );
       return allowedLeagueIds.includes(event.tournament?.uniqueTournament?.id);
     });
 
-    console.log("Filtered Matches: ", filteredMatches);
-
-    console.log("Filtered Matches: ", filteredMatches); // Log the data after filtering
 
     const enrichedMatches = filteredMatches.map((event) => {
       const startTimestamp = event.startTimestamp;
@@ -350,7 +258,7 @@ export const getLiveFootballMatches = async () => {
     return enrichedMatches;
   } catch (error) {
     console.error("Error in getLiveFootballMatches:", error.message);
-    return []; // Don't throw – return safe fallback
+    return [];
   }
 };
 
@@ -375,50 +283,7 @@ export const getTeamMatches = async (teamName, pageNo) => {
     if (!events || events.length === 0) return [];
 
     const enrichedMatches = events.map((event) => {
-      const startTimestamp = event.startTimestamp;
-      const currentPeriodStart = event.time?.currentPeriodStartTimestamp;
-      const lastPeriod = event.lastPeriod;
-
-      const statusType = event.status?.type;
-      const isSecondHalf = lastPeriod === "period2";
-
-      const injuryTime = isSecondHalf
-        ? event.time?.injuryTime2 || 0
-        : event.time?.injuryTime1 || 0;
-
-      let minute = null;
-      let timeInMatch = "";
-
-      if (statusType === "halftime") {
-        timeInMatch = "HT";
-        minute = "—";
-      } else if (statusType === "finished") {
-        timeInMatch = "FT";
-        minute = "—";
-      } else if (currentPeriodStart) {
-        const now = Math.floor(Date.now() / 1000);
-        const minutesElapsed = Math.floor((now - currentPeriodStart) / 60) + 1;
-        const totalMinutes = isSecondHalf
-          ? 45 + minutesElapsed
-          : minutesElapsed;
-        minute = totalMinutes;
-
-        const inInjuryTime =
-          (totalMinutes > 45 && totalMinutes <= 45 + injuryTime) ||
-          (totalMinutes > 90 && totalMinutes <= 90 + injuryTime);
-
-        if (inInjuryTime) {
-          const injuryBase = totalMinutes > 90 ? 90 : 45;
-          const extra = totalMinutes - injuryBase;
-          timeInMatch = `${injuryBase}+${extra}'`;
-        } else {
-          timeInMatch = `${totalMinutes}'`;
-        }
-      } else {
-        timeInMatch = "LIVE";
-        minute = "—";
-      }
-
+      
       return {
         id: event.id,
         team1: event.homeTeam?.name,
@@ -436,15 +301,13 @@ export const getTeamMatches = async (teamName, pageNo) => {
         }),
         status: event.status?.description || "TBD",
         tournament: event.tournament?.name || "",
-        minutesInMatch: minute,
-        timeInMatch,
       };
     });
 
     return enrichedMatches;
   } catch (error) {
     console.error("Error in getTeamMatches:", error.message);
-    return []; // Safe fallback
+    return []; 
   }
 };
 

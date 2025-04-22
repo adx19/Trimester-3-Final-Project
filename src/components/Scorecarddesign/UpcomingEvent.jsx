@@ -9,7 +9,6 @@ function UpcomingEvent({ leagueName }) {
   useEffect(() => {
     const fetchData = async () => {
       const data = await getUpcomingMatches(leagueName);
-      console.log(data)
       setFixtures(data);
     };
 

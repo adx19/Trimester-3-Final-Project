@@ -9,8 +9,7 @@ function PlayingNow() {
   const {getId} = getMatchId();
   useEffect(() => {
     const fetchData = async () => {
-      const matches = await getLiveFootballMatches(); 
-      console.log(matches);
+      const matches = await getLiveFootballMatches();
       setFixtures(matches);
     };
     fetchData();

@@ -15,7 +15,6 @@ function MatchDetails() {
     const fetchData = async () => {
       if (!id) return;
       const data = await getMatchDetails(id);
-      console.log(data?.event)
       setMatchData(data?.event);
     };
     fetchData();
