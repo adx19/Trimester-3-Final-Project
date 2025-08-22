@@ -11,7 +11,7 @@ function FootballScoreCard({ leagueName }) {
   useEffect(() => {
     const fetchData = async () => {
       const response = await getleaugeMatches(leagueName);
-
+      setFixtures(response);
     };
 
     fetchData();

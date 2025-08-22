@@ -33,6 +33,18 @@ export const getTeamData = async (teamName) => {
     return null;
   }
 };
+
+export const getTeamStadiumName = async (teamId) => {
+  try {
+    const res = await axios.get(`https://api.sofascore.com/api/v1/team/${teamId}`);
+    const venueName = res.data.team.venue?.name;
+    return venueName || "Stadium information not available.";
+  } catch (err) {
+    console.error("Error fetching stadium name:", err.message);
+    return "Something went wrong. Try again.";
+  }
+};
+
 export const getleaugeMatches = async (leagueSlug) => {
   const leagueId = leagueSlugToId[leagueSlug];
   const maxLookbackDays = 7;
@@ -44,16 +56,15 @@ export const getleaugeMatches = async (leagueSlug) => {
 
   try {
     const now = Date.now();
-    const matches = [];
+    const allMatchesMap = new Map(); // Use Map to avoid duplicates
 
     for (let i = 0; i < maxLookbackDays; i++) {
       const date = new Date();
       date.setDate(date.getDate() - i);
       const dateStr = date.toISOString().split("T")[0];
 
-      const scraperAPIUrl = `${BASE_URL}/sport/football/scheduled-events/${dateStr}`;
-      const response = await axios.get(scraperAPIUrl);
-      const events = response.data.events || [];
+      const response = await axios.get(`${BASE_URL}/sport/football/scheduled-events/${dateStr}`);
+      const events = response.data?.events || [];
 
       const leagueMatches = events.filter((event) => {
         const tournamentId = event.tournament?.uniqueTournament?.id;
@@ -62,33 +73,33 @@ export const getleaugeMatches = async (leagueSlug) => {
         return isMatchEarlier && isMatchFinished && tournamentId === leagueId;
       });
 
-      const enrichedMatches = leagueMatches.map((event) => {
-        const startTimestamp = event.startTimestamp;
-        
-        return {
-          id: event.id,
-          team1: event.homeTeam?.name,
-          team2: event.awayTeam?.name,
-          team1Logo: `${BASE_URL}/team/${event.homeTeam?.id}/image`,
-          team2Logo: `${BASE_URL}/team/${event.awayTeam?.id}/image`,
-          score: `${event.homeScore?.current ?? "-"} - ${event.awayScore?.current ?? "-"}`,
-          venue: event.venue?.name || "TBD",
-          date: dateStr,
-          time: new Date(startTimestamp * 1000).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-          status: event.status?.type || "TBD",
-          tournament: event.tournament?.name || "",
-        };
+      leagueMatches.forEach((event) => {
+        if (!allMatchesMap.has(event.id)) {
+          const startTimestamp = event.startTimestamp;
+          const venueName = getTeamStadiumName(event.homeTeam?.id);
+          allMatchesMap.set(event.id, {
+            id: event.id,
+            team1: event.homeTeam?.name,
+            team2: event.awayTeam?.name,
+            team1Logo: `${BASE_URL}/team/${event.homeTeam?.id}/image`,
+            team2Logo: `${BASE_URL}/team/${event.awayTeam?.id}/image`,
+            score: `${event.homeScore?.current ?? "-"} - ${event.awayScore?.current ?? "-"}`,
+            venue: venueName,
+            date: dateStr,
+            time: new Date(startTimestamp * 1000).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+            status: event.status?.type || "TBD",
+            tournament: event.tournament?.name || "",
+          });
+        }
       });
-
-      return enrichedMatches;
     }
 
-    return matches;
+    return Array.from(allMatchesMap.values());
   } catch (error) {
-    console.error("Error in getLeagueMatches:", error.message);
+    console.error("Error in getleaugeMatches:", error.message);
     return [];
   }
 };
@@ -137,7 +148,7 @@ export const getUpcomingMatches = async (leagueSlug) => {
           const enrichedMatches = upcomingMatches.map((event) => {
             const startTimestamp = event.startTimestamp;
 
-           
+           const venueName = getTeamStadiumName(event.homeTeam?.id);
 
             return {
               id: event.id,
@@ -146,7 +157,7 @@ export const getUpcomingMatches = async (leagueSlug) => {
               team1Logo: `${BASE_URL}/team/${event.homeTeam?.id}/image`,
               team2Logo: `${BASE_URL}/team/${event.awayTeam?.id}/image`,
               score: "-",
-              venue: event.venue?.name || "TBD",
+              venue: venueName,
               date: dateStr,
               time: new Date(startTimestamp * 1000).toLocaleTimeString([], {
                 hour: "2-digit",

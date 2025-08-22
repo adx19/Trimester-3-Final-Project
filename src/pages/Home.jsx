@@ -12,7 +12,7 @@ function Home() {
   const { status } = useStatus();
   const { search } = useSearch();
   const { id, setId } = getMatchId();
-  const topLeagues = Object.keys(leagueSlugToId);
+  const topLeagues = leagueSlugToId;
 
   console.log('Selected Match ID:', id)
 
