@@ -1,63 +1,65 @@
-# React + Vite
+# Live Sports Score App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A React-based web application to view live football match data, past results, upcoming fixtures, and detailed match statistics.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🚀 Features
 
-<<<<<<< HEAD
-## Expanding the ESLint configuration
-=======
 - **Live Match Scores**  
-  Instantly view scores from top leagues around the world in real-time.
+  View real-time scores from top football leagues.
 
 - **Past Week Match Results**  
-  Easily access match outcomes from the past 7 days for all major leagues.
+  Access match outcomes from the last 7 days.
 
 - **Upcoming Fixtures**  
-  Stay informed about matches scheduled in the next 7 days.
+  See matches scheduled for the next 7 days.
 
 - **Team-based Search**  
-  Type in any team's name and get a full list of matches they’ve played — from their most recent game to the oldest one in our database.
+  Search for any team to view all their matches from most recent to oldest.
 
 - **Score Cards with Popup Details**  
-  Each match is displayed in a clean, minimal card format showing:
-  - Team names
-  - Logos
+  Each match is shown in a clean card format with:
+  - Team names & logos
   - Final score (if available)
-  - Date and time of the match  
+  - Match date & time  
 
-  Clicking on a card brings up a **popup** with full match stats:
+  Clicking a card opens a detailed popup showing:
   - Ball possession
   - Total shots & shots on target
   - Saves
-  - Number of passes & pass accuracy
-  - Yellow and red cards (including player and timing)
-  - Goal scorers with the minute of scoring
+  - Pass count & pass accuracy
+  - Yellow & red cards (with player names and timings)
+  - Goal scorers with minute of scoring
 
 ---
 
 ## 🧩 Tech Stack
 
-- **Frontend Framework:** React (with Vite)
-- **Styling:** Tailwind CSS
-- **State Management & Data Fetching:** Axios, React hooks
-- **Match Data Source:** SofaScore  
-  > ℹ️ *Note: This app uses a custom-built scraper API to fetch data from SofaScore. As SofaScore does not provide an official public API, the scraper is limited in scope and may be rate-limited or blocked occasionally.(The api may take time to load due to data fetching issue)(I fixed the issue it was the issue that I was using the same wifi. That is why I had late commit You can check my final commit Nothing changed)*
+- **Frontend:** React + Vite  
+- **Styling:** Tailwind CSS  
+- **Data Fetching:** Axios, React Hooks  
+- **Data Source:** SofaScore (via custom scraper API)
+
+> ⚠️ Note: SofaScore does not provide an official public API.  
+> This app uses a custom scraper, which may be rate-limited or blocked due to CORS or network restrictions in production.
 
 ---
 
 ## 📸 Screenshots
-    > ℹ️ *Note: I added screenShots in case api is not working.Also Deployment is showing CORS issue which I tried to solve but was unable to do it*
-![LiveMatch](./screenshots/live.png)
-![PreviousMatches](./screenshots/past%20Matches.png)
-![UpcomingMatches](./screenshots/upcoming%20matches.png)
-![TeamSearchResult](./screenshots/team.png)
-![CompleteMatchDetails](./screenshots/MatchDetails.png)
+
+> Screenshots are included in case the API is unavailable during review.
+
+![Live Match](./screenshots/live.png)
+![Past Matches](./screenshots/past%20Matches.png)
+![Upcoming Matches](./screenshots/upcoming%20matches.png)
+![Team Search](./screenshots/team.png)
+![Match Details](./screenshots/MatchDetails.png)
 
 ---
->>>>>>> b73453f (Fix Vite build path)
 
-If you are developing a production application, we recommend using TypeScript and enable type-aware lint rules. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## 🛠️ Setup & Run Locally
+
+```bash
+npm install
+npm run dev
