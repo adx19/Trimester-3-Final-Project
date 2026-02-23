@@ -10,7 +10,7 @@ export const getTeamData = async (teamName) => {
   }
 
   try {
-    const res = await axios.get(`${BASE_URL}/search/all/`, {
+    const res = await axios.get(`${BASE_URL}/search/all`, {
       params: { q: teamName },
       headers: { Accept: "application/json" },
     });
@@ -36,7 +36,7 @@ export const getTeamData = async (teamName) => {
 
 export const getTeamStadiumName = async (teamId) => {
   try {
-    const res = await axios.get(`https://api.sofascore.com/api/v1/team/${teamId}`);
+    const res = await axios.get(`${BASE_URL}/team/${teamId}`);
     const venueName = res.data.team.venue?.name;
     return venueName || "Stadium information not available.";
   } catch (err) {
@@ -278,7 +278,7 @@ export const getTeamMatches = async (teamName, pageNo) => {
 
   try {
 
-    const searchRes = await axios.get(`${BASE_URL}/search/all/?q=${teamName}`);
+    const searchRes = await axios.get(`${BASE_URL}/search/all?q=${teamName}`);
     const results = searchRes.data.results;
 
     if (!results || results.length === 0) return [];
