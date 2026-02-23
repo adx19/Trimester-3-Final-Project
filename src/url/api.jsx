@@ -27,9 +27,10 @@ export const getTeamData = async (teamName) => {
       ) || teams[0];
 
     return matchedTeam.entity?.id || null;
-  } catch {
-    return null;
-  }
+  } catch (error) {
+  console.warn("API ERROR:", error?.response?.status, error?.message);
+  return [];
+}
 };
 
 export const getTeamStadiumName = async (teamId) => {
@@ -37,9 +38,10 @@ export const getTeamStadiumName = async (teamId) => {
     await delay(200);
     const res = await axios.get(`${BASE_URL}/team/${teamId}`);
     return res.data.team.venue?.name || "Unknown";
-  } catch {
-    return "Unknown";
-  }
+  } catch (error) {
+  console.warn("API ERROR:", error?.response?.status, error?.message);
+  return [];
+}
 };
 
 export const getleaugeMatches = async (leagueSlug) => {
@@ -95,9 +97,10 @@ export const getleaugeMatches = async (leagueSlug) => {
     }
 
     return Array.from(allMatchesMap.values());
-  } catch {
-    return [];
-  }
+  } catch (error) {
+  console.warn("API ERROR:", error?.response?.status, error?.message);
+  return [];
+}
 };
 
 export const getSeasonId = async (leagueSlug) => {
@@ -107,9 +110,10 @@ export const getSeasonId = async (leagueSlug) => {
       `${BASE_URL}/unique-tournament/${leagueSlug}/seasons`
     );
     return res.data.seasons?.[0]?.id;
-  } catch {
-    return null;
-  }
+  } catch (error) {
+  console.warn("API ERROR:", error?.response?.status, error?.message);
+  return [];
+}
 };
 
 export const getUpcomingMatches = async (leagueSlug) => {
@@ -161,9 +165,10 @@ export const getUpcomingMatches = async (leagueSlug) => {
     }
 
     return [];
-  } catch {
-    return [];
-  }
+  } catch (error) {
+  console.warn("API ERROR:", error?.response?.status, error?.message);
+  return [];
+}
 };
 
 export const getLiveFootballMatches = async () => {
@@ -230,9 +235,10 @@ export const getLiveFootballMatches = async () => {
         timeInMatch,
       };
     });
-  } catch {
-    return [];
-  }
+  } catch (error) {
+  console.warn("API ERROR:", error?.response?.status, error?.message);
+  return [];
+}
 };
 
 export const getTeamMatches = async (teamName, pageNo) => {
@@ -272,9 +278,10 @@ export const getTeamMatches = async (teamName, pageNo) => {
       status: event.status?.description || "TBD",
       tournament: event.tournament?.name || "",
     }));
-  } catch {
-    return [];
-  }
+  } catch (error) {
+  console.warn("API ERROR:", error?.response?.status, error?.message);
+  return [];
+}
 };
 
 export const getMatchDetails = async (id) => {
@@ -282,9 +289,10 @@ export const getMatchDetails = async (id) => {
     await delay(200);
     const response = await axios.get(`${BASE_URL}/event/${id}`);
     return response.data;
-  } catch {
-    return null;
-  }
+  } catch (error) {
+  console.warn("API ERROR:", error?.response?.status, error?.message);
+  return [];
+}
 };
 
 export const getMatchStatistics = async (id) => {
@@ -389,7 +397,8 @@ export const getMatchStatistics = async (id) => {
       awayTeamRedCardReceivers,
       ...stats,
     };
-  } catch {
-    return null;
-  }
+  } catch (error) {
+  console.warn("API ERROR:", error?.response?.status, error?.message);
+  return [];
+}
 };
