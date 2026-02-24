@@ -41,22 +41,30 @@ export const getTeamStadiumName = async (teamId) => {
 
 export const getleaugeMatches = async (leagueSlug) => {
   if (isProd) {
-    return leagueDemo.events.slice(0, 10).map((event) => ({
-      id: event.id,
-      team1: event.homeTeam?.name,
-      team2: event.awayTeam?.name,
-      team1Logo: `https://api.sofascore.app/api/v1/team/${event.homeTeam?.id}/image`,
-      team2Logo: `https://api.sofascore.app/api/v1/team/${event.awayTeam?.id}/image`,
-      score: `${event.homeScore?.current ?? "-"} - ${event.awayScore?.current ?? "-"}`,
-      venue: event.venue?.name || "Unknown",
-      date: new Date(event.startTimestamp * 1000).toISOString().split("T")[0],
-      time: new Date(event.startTimestamp * 1000).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-      status: event.status?.type || "TBD",
-      tournament: event.tournament?.name || "",
-    }));
+    const leagueId = leagueSlugToId[leagueSlug];
+
+    return (leagueDemo.events || [])
+      .filter(
+        (event) =>
+          event.tournament?.uniqueTournament?.id === leagueId
+      )
+      .slice(0, 10)
+      .map((event) => ({
+        id: event.id,
+        team1: event.homeTeam?.name,
+        team2: event.awayTeam?.name,
+        team1Logo: `https://api.sofascore.app/api/v1/team/${event.homeTeam?.id}/image`,
+        team2Logo: `https://api.sofascore.app/api/v1/team/${event.awayTeam?.id}/image`,
+        score: `${event.homeScore?.current ?? "-"} - ${event.awayScore?.current ?? "-"}`,
+        venue: event.venue?.name || "Unknown",
+        date: new Date(event.startTimestamp * 1000).toISOString().split("T")[0],
+        time: new Date(event.startTimestamp * 1000).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        status: event.status?.type || "TBD",
+        tournament: event.tournament?.name || "",
+      }));
   }
 
   const leagueId = leagueSlugToId[leagueSlug];
@@ -110,7 +118,6 @@ export const getleaugeMatches = async (leagueSlug) => {
     return [];
   }
 };
-
 export const getSeasonId = async (leagueSlug) => {
   const res = await axios.get(`${BASE_URL}/unique-tournament/${leagueSlug}/seasons`);
   return res.data.seasons?.[0]?.id;
@@ -121,6 +128,33 @@ export const getUpcomingMatches = async (leagueSlug) => {
   const maxForwardDays = 7;
 
   if (!leagueId) return [];
+  if (isProd) {
+  const leagueId = leagueSlugToId[leagueSlug];
+
+  return (leagueDemo.events || [])
+    .filter(
+      (event) =>
+        event.tournament?.uniqueTournament?.id === leagueId &&
+        event.status?.type !== "finished"
+    )
+    .slice(0, 10)
+    .map((event) => ({
+      id: event.id,
+      team1: event.homeTeam?.name,
+      team2: event.awayTeam?.name,
+      team1Logo: `https://api.sofascore.app/api/v1/team/${event.homeTeam?.id}/image`,
+      team2Logo: `https://api.sofascore.app/api/v1/team/${event.awayTeam?.id}/image`,
+      score: "-",
+      venue: event.venue?.name || "Unknown",
+      date: new Date(event.startTimestamp * 1000).toISOString().split("T")[0],
+      time: new Date(event.startTimestamp * 1000).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      status: "Scheduled",
+      tournament: event.tournament?.name || "",
+    }));
+}
 
   try {
     const now = Date.now();
@@ -204,6 +238,34 @@ export const getLiveFootballMatches = async () => {
 export const getTeamMatches = async (teamName, pageNo) => {
   if (!teamName) return [];
 
+  if (isProd) {
+    const matches = leagueDemo.events || [];
+
+    return matches
+      .filter(
+        (e) =>
+          e.homeTeam?.name?.toLowerCase().includes(teamName.toLowerCase()) ||
+          e.awayTeam?.name?.toLowerCase().includes(teamName.toLowerCase())
+      )
+      .slice(0, 10)
+      .map((event) => ({
+        id: event.id,
+        team1: event.homeTeam?.name,
+        team2: event.awayTeam?.name,
+        team1Logo: `https://api.sofascore.app/api/v1/team/${event.homeTeam?.id}/image`,
+        team2Logo: `https://api.sofascore.app/api/v1/team/${event.awayTeam?.id}/image`,
+        score: `${event.homeScore?.current ?? "-"} - ${event.awayScore?.current ?? "-"}`,
+        venue: event.venue?.name || "Unknown",
+        date: new Date(event.startTimestamp * 1000).toISOString().split("T")[0],
+        time: new Date(event.startTimestamp * 1000).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        status: event.status?.description || "TBD",
+        tournament: event.tournament?.name || "",
+      }));
+  }
+
   try {
     const searchRes = await axios.get(`${BASE_URL}/search/all?q=${teamName}`);
     const results = searchRes.data.results;
@@ -238,7 +300,12 @@ export const getTeamMatches = async (teamName, pageNo) => {
 
 export const getMatchDetails = async (id) => {
   try {
-    if (isProd) return matchDetailsDemo;
+   if (isProd) {
+  return (
+    leagueDemo.events.find((e) => e.id === id) ||
+    matchDetailsDemo
+  );
+}
     const response = await axios.get(`${BASE_URL}/event/${id}`);
     return response.data;
   } catch {
