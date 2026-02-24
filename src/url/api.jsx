@@ -167,7 +167,7 @@ export const getUpcomingMatches = async (leagueSlug) => {
 
 export const getLiveFootballMatches = async () => {
   try {
-    if (isProd) return liveDemo;
+    if (isProd) return liveDemo.events || [];
 
     const response = await axios.get(`${BASE_URL}/sport/football/events/live`);
     const liveEvents = response.data.events || [];
